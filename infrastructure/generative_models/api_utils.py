@@ -368,8 +368,8 @@ docking_paths = {'Alzhmr' : 'generative_models/autodock_vina_python3/data/4j1r.p
                  'Sklrz':'generative_models/autodock_vina_python3/data/target_BTK.pdb'}
 
 opt = parsing()
-parser = configurate_parser(load_weights="generative_models/many_prop_CVAE/weights_8p_alzhmr",#weights_33k_trained
-                            load_weights_fields = "generative_models/many_prop_CVAE/weights_8p_alzhmr",
+parser = configurate_parser(load_weights="/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_alzhmr",#weights_33k_trained
+                            load_weights_fields = "/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_alzhmr",
                             cuda=False,
                             save_folder_name='alzh_gen_mols',
                             new_vocab = False,
@@ -378,25 +378,25 @@ parser = configurate_parser(load_weights="generative_models/many_prop_CVAE/weigh
                                 )
 opt_Alz_multi = parser.parse_args()
 opt_sklrz = parser.parse_args()
-opt_sklrz.load_weights = "generative_models/many_prop_CVAE/weights_8p_sklrz"
-opt_sklrz.load_weights_fields = "generative_models/many_prop_CVAE/weights_8p_sklrz"
+opt_sklrz.load_weights = "/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_sklrz"
+opt_sklrz.load_weights_fields = "/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_sklrz"
 
 opt_cnsr = parser.parse_args()
-opt_cnsr.load_weights = 'generative_models/many_prop_CVAE/weights_8p_cnsr'
-opt_cnsr.load_weights_fields = 'generative_models/many_prop_CVAE/weights_8p_cnsr'
+opt_cnsr.load_weights = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_cnsr'
+opt_cnsr.load_weights_fields = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_cnsr'
 
 
 opt_tablet = parser.parse_args()
-opt_tablet.load_weights = 'generative_models/many_prop_CVAE/weights_8p_tablet'
-opt_tablet.load_weights_fields = 'generative_models/many_prop_CVAE/weights_8p_tablet'
+opt_tablet.load_weights = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_tablet'
+opt_tablet.load_weights_fields = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_8p_tablet'
 
 opt_park = parser.parse_args()
-opt_park.load_weights = 'generative_models/many_prop_CVAE/weights_parkinson'
-opt_park.load_weights_fields = 'generative_models/many_prop_CVAE/weights_parkinson'
+opt_park.load_weights = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_parkinson'
+opt_park.load_weights_fields = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_parkinson'
 
 opt_dislip = parser.parse_args()
-opt_dislip.load_weights = 'generative_models/many_prop_CVAE/weights_dislip'
-opt_dislip.load_weights_fields = 'generative_models/many_prop_CVAE/weights_dislip'
+opt_dislip.load_weights = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_dislip'
+opt_dislip.load_weights_fields = '/projects/CoScientist/infrastructure/generative_models/autotrain/many_prop_CVAE/weights_dislip'
 
 # Case information
 cases = {'Alzhmr' : 

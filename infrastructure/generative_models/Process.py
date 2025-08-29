@@ -8,7 +8,7 @@ import os
 import dill as pickle
 import numpy as np
 import sys
-import dataDistibutionCheck as KOSTIL_FOR_PICKL
+import generative_models as KOSTIL_FOR_PICKL
 sys.modules['generative_models.Sber_Alzheimer'] = KOSTIL_FOR_PICKL
 
 sys.path.append(os.path.dirname(__file__))
