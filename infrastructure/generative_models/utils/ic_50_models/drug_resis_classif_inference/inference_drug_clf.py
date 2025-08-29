@@ -13,7 +13,7 @@ pd.set_option('display.float_format', '{:.2f}'.format)
 warnings.filterwarnings('ignore')
 
 def predict(smiles_list):
-    model = joblib.load("utils/ic_50_models/drug_resis_classif_inference/model_drug_clf.pkl")
+    model = joblib.load("infrastructure/generative_models/utils/ic_50_models/drug_resis_classif_inference/model_drug_clf.pkl")
     predictions = model.predict(create_features_for_smiles(smiles_list))
     return 1 - predictions
 def safe_canon_smiles(smiles):

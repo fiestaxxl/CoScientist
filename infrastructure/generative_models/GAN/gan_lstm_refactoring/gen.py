@@ -6,7 +6,7 @@ import pandas as pd
 import random
 
 def generate(n):
-    gan_mol = pi.load(open('generative_models/GAN/gan_lstm_refactoring/weights/v4_gan_mol_124_0.0003_8k.pkl', 'rb'))
+    gan_mol = pi.load(open('infrastructure/generative_models/GAN/gan_lstm_refactoring/weights/v4_gan_mol_124_0.0003_8k.pkl', 'rb'))
     
     # generate smiles molecules
     smiles_list = gan_mol.generate_n(n)

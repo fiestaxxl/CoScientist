@@ -19,7 +19,7 @@ def predict(smiles_list):
     # with open("/projects/generative_models_data/utils/ic_50_models/CYK/stacking_regressor.pkl", "rb") as f:
     #     model = load(f)
     rename = {'bit'+str(i):'fingerprint_'+str(i) for i in range(0,2048)}
-    model = load(r"/projects/generative_models_data/utils/ic_50_models/CYK/stacking_regressor.joblib")
+    model = load(r"infrastructure/generative_models/utils/ic_50_models/CYK/stacking_regressor.joblib")
     # df = fingerprints_descriptors(smiles_list, 'morgan', 2048, 2).rename(columns=rename)
     # cols = [rename[i] for i in rename.keys()]
     # df = df[cols]

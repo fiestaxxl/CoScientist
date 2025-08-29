@@ -11,10 +11,11 @@ import joblib
 RDLogger.DisableLog('rdApp.*')
 pd.set_option('display.float_format', '{:.2f}'.format)
 warnings.filterwarnings('ignore')
+import catboost
 
 #a function that predicts the standard value for the transmitted smiles list
 def predict(smiles_list):
-    model = joblib.load("utils/ki_models/tyrosine_regression_inference/model_tyrosine_regr.pkl")
+    model = joblib.load("infrastructure/generative_models/utils/ki_models/tyrosine_regression_inference/model_tyrosine_regr.pkl")
     predictions = model.predict(create_features_for_smiles(smiles_list))
     return predictions
 
@@ -61,13 +62,13 @@ def create_features_for_smiles(smiles_names):
     AVfpts.columns = AVfpts.columns.astype(str)
     df.drop(["Canonical Smiles"], axis=1, inplace=True)
     X_test = pd.concat([descriptors_df, AVfpts], axis=1)
-    scaler= joblib.load("utils/ki_models/tyrosine_regression_inference/scaler_tyrosine_regr.pkl")
+    scaler= joblib.load("infrastructure/generative_models/utils/ki_models/tyrosine_regression_inference/scaler_tyrosine_regr.pkl")
     X_new = scaler.transform(get_only_scale_features(df = X_test))
     return X_new
 
 #a function that selects only columns with a pre-applied scaler for the dataframe
 def get_only_scale_features(df):
-    path = 'utils/ki_models/tyrosine_regression_inference/selected_features_tyrosine_regr.csv'#os.path.join("..", "regression_csvs", "selected_features_tyrosine_regr.csv")
+    path = 'infrastructure/generative_models/utils/ki_models/tyrosine_regression_inference/selected_features_tyrosine_regr.csv'#os.path.join("..", "regression_csvs", "selected_features_tyrosine_regr.csv")
     with open(path, "r") as inf:
         arr = [i for i in inf.readline().split(",")]
     return df[arr]

@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 
 #a function that predicts the standard value for the transmitted smiles list
 def predict(smiles_list):
-    model = joblib.load("/projects/AAAI_code/utils/ic_50_models/proprotein_classif_inference/model_proprotein_clf.pkl")
+    model = joblib.load("infrastructure/generative_models/utils/ic_50_models/proprotein_classif_inference/model_proprotein_clf.pkl")
     predictions = model.predict(create_features_for_smiles(smiles_list))
     return predictions
 

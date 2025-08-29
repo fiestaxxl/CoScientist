@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore')
 
 
 def predict(smiles_list):
-    model = joblib.load("utils/inference_BB_clf/model_BB_clf.pkl")
+    model = joblib.load("infrastructure/generative_models/utils/inference_BB_clf/model_BB_clf.pkl")
     predictions = model.predict(create_features_for_smiles(create_df_without_descriptors(smiles_list)))
     return predictions
 
@@ -169,8 +169,8 @@ def remove_inorganic(data):
     return data
 def prepare_to_predict(result):
     result.fillna(0, inplace=True)
-    scaler = joblib.load("utils/inference_BB_clf/scaler_BB_clf.pkl")
-    features = joblib.load("utils/inference_BB_clf/most_importance_features.pkl")
+    scaler = joblib.load("infrastructure/generative_models/utils/inference_BB_clf/scaler_BB_clf.pkl")
+    features = joblib.load("infrastructure/generative_models/utils/inference_BB_clf/most_importance_features.pkl")
     data = result[features]
     data = scaler.transform(data)
     return data

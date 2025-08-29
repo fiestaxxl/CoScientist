@@ -42,7 +42,7 @@ def eval_P_S_G(smile:str,type_n:str='all'):
     Returns:
         List: List with metrics of PAINS,SureChEMBL and Glaxo metrics
     """
-    alert_table = pd.read_csv('autotrain/utils/alert_collections.csv')
+    alert_table = pd.read_csv('infrastructure/generative_models/autotrain/utils/alert_collections.csv')
     patterns = dict()
     if type_n == 'all':
         for name in ['PAINS', 'SureChEMBL', 'Glaxo']:

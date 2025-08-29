@@ -25,7 +25,7 @@ def fingerprints_descriptors(smiles_list, fp_type, size, radius):
 
 def main():
   df = pd.read_csv('utils/ic_50_models/skleroz_ic50_clf/data/test.csv')
-  model = pickle.load(open('utils/ic_50_models/kras_ic50_prediction/lung_cancer_model.pkl', 'rb'))
+  model = pickle.load(open('infrastructure/generative_models/utils/ic_50_models/kras_ic50_prediction/lung_cancer_model.pkl', 'rb'))
   
   fps = fingerprints_descriptors(df['smiles'], 'morgan', 512, 2)
   labels = model.predict(fps)
@@ -35,7 +35,7 @@ def main():
 
 def eval_ic_50_cancer(smiles : List[str]):
   print('load_ic_model')
-  model = pickle.load(open('utils/ic_50_models/kras_ic50_prediction/lung_cancer_model.pkl', 'rb'))
+  model = pickle.load(open('infrastructure/generative_models/utils/ic_50_models/kras_ic50_prediction/lung_cancer_model.pkl', 'rb'))
   print('load_ic_model')
   fps = fingerprints_descriptors(smiles, 'morgan', 512, 2)
   labels = model.predict(fps)

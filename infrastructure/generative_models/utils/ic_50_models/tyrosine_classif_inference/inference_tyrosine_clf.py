@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 
 #a function that predicts the standard value for the transmitted smiles list
 def predict(smiles_list):
-    model = joblib.load("utils/ic_50_models/tyrosine_classif_inference/model_tyrosine_clf.pkl")
+    model = joblib.load("infrastructure/generative_models/utils/ic_50_models/tyrosine_classif_inference/model_tyrosine_clf.pkl")
     predictions = model.predict(create_features_for_smiles(smiles_list))
     return 1 - predictions
 

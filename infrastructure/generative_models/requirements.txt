@@ -27,3 +27,4 @@ lightgbm
 vina
 bio
 huggingface_hub
+catboost

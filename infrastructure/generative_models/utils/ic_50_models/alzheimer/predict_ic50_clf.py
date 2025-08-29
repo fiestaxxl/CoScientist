@@ -39,7 +39,7 @@ def main():
     print(i)
 
 def eval_ic_50_alzheimer(smiles : List[str]):
-  model = pickle.load(open('utils/ic_50_models/alzheimer/alzheimer_clf.pkl', 'rb'))
+  model = pickle.load(open('infrastructure/generative_models/utils/ic_50_models/alzheimer/alzheimer_clf.pkl', 'rb'))
   fps = smi_to_MACCS(smiles)
   labels = model.predict(fps)
   return 1 - labels

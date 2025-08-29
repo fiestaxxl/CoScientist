@@ -273,8 +273,8 @@ if __name__=='__main__':
     #                     fine_tune=True,
     #                     data_path='infrastructure/automl/data/base_cases/docked_all_kinase_inhib.csv',
     #                     epochs=2)
-    call_for_gan_generation(numb_mol=100,case_='Alzheimer_regression_Minimum_Energy_Vitctor',url = "http://10.32.2.2:293/gan_case_generator")
-
+    #call_for_gan_generation(numb_mol=100,case_='Alzheimer_regression_Minimum_Energy_Vitctor',url = "http://10.32.2.2:293/gan_case_generator")
+    print(call_for_generation(url="http://10.32.2.2:293/case_generator",case_='RNDM'))#'Alzhmr','Sklrz','Prkns','Cnsr','Dslpdm','TBLET', 'RNDM'
     
     #print(get_state_from_server(url = "http://10.32.2.2:193",case = "Alzheimer_regression"))
 
