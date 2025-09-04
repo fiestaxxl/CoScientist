@@ -26,24 +26,82 @@ automl_agent_description = """
 'ml_dl_agent' - an agent that can run training of a generative model to generate SMILES, training of predictive models 
 to predict properties. It also already stores ready-made models for inference. You can also ask him to prepare an 
 existing dataset (you need to be specific in your request).
-It can generate medicinal molecules. You must use this agent for molecules generation!!!\n
-
+It can generate medicinal molecules. You must use this agent for molecules generation!!!
 """
-dataset_builder_agent_description = "'dataset_builder_agent' - collects data from two databases - ChemBL and BindingDB. \
-    To collect data, it needs either the protein name or a specific id from a specific database. \
-        It can collect data from one specific database or from both. All data is saved locally. \
-        It also processes data: removes junk values, empty cells, and can filter if necessary.\n"
 
-coder_agent_description = (
-    "'coder_agent' - can write any simple python scientific code. Can use rdkit and other "
-    "chemical libraries. Can perform calculations.\n "
-)
+dataset_builder_agent_description = """
+'dataset_builder_agent' - collects data from two databases - ChemBL and BindingDB.
+To collect data, it needs either the protein name or a specific id from a specific database. 
+It can collect data from one specific database or from both. All data is saved locally. 
+It also processes data: removes junk values, empty cells, and can filter if necessary.
+"""
 
-# paper_analysis_node_description = (
-#     "'paper_analysis_node' - answers questions by retrieving and analyzing information "
-#     "from a database of chemical scientific papers. Using this agent takes precedence over web search."
-# )
-web_search_description = "You can use web search to find information on the internet. "
+coder_agent_description = """
+'coder_agent' - can write any simple python scientific code. Can use rdkit and other 
+chemical libraries. Can perform calculations.
+"""
+
+paper_analysis_node_description = """
+Agent name: paper_analysis_node
+
+Purpose: Retrieve and analyze chemical science papers from the internal database.
+When to activate: User asks about chemistry articles, papers, or research findings.
+Procedure:
+    1) Plan the agent's steps.
+    2) Query the internal database for relevant papers.
+    3) Call "web_search" to add recent or missing internet information.
+
+Constraints: Do not call other agents unless the user explicitly requests them.
+Do not use explore_my_papers tool if user has not provided you his papers.
+
+Inputs:
+- user_query: str
+
+Outputs:
+- Clear summary of key findings.
+- Citations to database record IDs and web source URLs.
+- Noted assumptions or gaps.
+
+Failure handling:
+If no relevant papers are found, state "no match in database" and still run "web_search".
+"""
+
+web_search_description = """
+Agent name: web_search_node
+
+Purpose:
+Find and summarize up-to-date information from the public internet.
+
+When to activate:
+- User explicitly asks to search the web or look online.
+- Current or changing data is needed.
+- Another agent requests external verification or recency checks.
+
+Procedure:
+1) Parse the user request into search intents and keywords.
+2) Run web queries and collect top relevant sources.
+3) Extract key facts, dates, and figures.
+4) Produce a concise summary with citations.
+5) Return results to the caller.
+
+Constraints:
+- Run as a separate agent, not bundled with others in the same turn.
+- Do not fabricate URLs or claims.
+- Prefer primary and authoritative sources.
+
+Inputs:
+- user_query: str
+- optional_context: dict  # e.g., domain hints, date range, locale
+
+Outputs:
+- summary: str
+- sources: list  # [{"title": str, "url": str, "date": str|None}]
+
+Failure handling:
+- If no reliable sources are found, state "no reliable sources" and suggest query refinement.
+- If sources are paywalled, note it and provide accessible alternatives when possible.
+"""
+
 
 additional_agents_description = (
     automl_agent_description
@@ -133,27 +191,36 @@ conf = {
                 "rules": None,
                 "desc_restrictions": None,
                 "examples": None,
-                "additional_hints": "Before you start training models, plan to check your data for garbage using a dataset_builder_agent.\n \
-                If the user provides his dataset - immediately start training using ml_dl_agent (never call dataset_builder_agent)!\
-                        To find an answer, use the paper search first! NOT the web search!",
+                "additional_hints": """
+                Before starting model training, check data for garbage with 'dataset_builder_agent'. 
+                If the user already provides a dataset, go straight to 'ml_dl_agent' and skip 'dataset_builder_agent' 
+                For questions about papers, articles, or research findings, plan exactly two steps: 
+                first 'paper_analysis_node', then 'web_search'. 
+                Do not schedule any other agents for such research tasks.
+                If user asks find something in internet you have to use 'web_search'.
+                Always choose the minimal set of agents necessary for the user's request.
+                """,
             },
             "chat": {
                 "problem_statement": None,
-                "additional_hints": """You are a chemical agent system. You can do the following:
-                    - train generative models (generate SMILES molecules), train predictive models (predict properties)
-                    - prepare a dataset for training
-                    - download data from chemical databases: ChemBL, BindingDB
-                    - perform calculations with chemical python libraries
-                    - solve problems of nanomaterial synthesis
-                    - analyze chemical articles
-                    
-                    If user ask something like "What can you do" - make answer yourself!
+                "additional_hints": """
+                You are a chemical agent system. You can do the following:
+                - train generative models (generate SMILES molecules), train predictive models (predict properties)
+                - prepare a dataset for training
+                - download data from chemical databases: ChemBL, BindingDB
+                - perform calculations with chemical python libraries
+                - solve problems of nanomaterial synthesis
+                - analyze chemical articles
+                If user ask something like "What can you do" - make answer yourself!
                     """,
             },
             "summary": {
                 "problem_statement": None,
                 "rules": None,
-                "additional_hints": "Never write full paths! Only file names.",
+                "additional_hints": """                
+                Never write full paths! Only file names. If 'paper_analysis_node' and 'web_search' were used,  
+                present the final answer as: paper_analysis: <paper_analysis_agent result>   web_search: <web_search_node result>.
+                """,
             },
             "replanner": {
                 "problem_statement": None,
