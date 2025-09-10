@@ -27,8 +27,9 @@ inputs = {"input": "What is a key advantage of electrodialysis with bipolar memb
 # inputs = {"input": "What is the proposed rate-determining step for the oxidation of ethylene glycol to glycolic acid on an Au/NiO surface with oxygen vacancies, and what specific roles do the "AuNi alloy" and NiO-Ov structures at the interface play in this step?"}
 # inputs = {"input": "What is the effect of using a lower molecular weight PEO (MW = 10,000 g/mol ) within the PI host on the performance of a Li/LiFePO₄ all-solid-state cell at a lower operating temperature of 30°C?"}
 
-
+# Paper analysis
 graph = GraphBuilder(cc.conf)
+inputs = {"input": "question = 'How does the synthesis of Glionitrin A/B happen?'"}
 
 if __name__ == "__main__":
     for step in graph.stream(inputs, user_id="1"):

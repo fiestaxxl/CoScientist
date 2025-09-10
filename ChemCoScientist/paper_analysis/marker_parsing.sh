@@ -14,4 +14,4 @@ fi
 
 ulimit -n 4096
 
-marker "$INPUT_DIR" --workers $WORKERS --output_dir "$OUTPUT_DIR" --output_format html --max_tasks_per_worker 5
+marker "$INPUT_DIR" --workers $WORKERS --output_dir "$OUTPUT_DIR" --output_format html --max_tasks_per_worker 5  --skip_existing

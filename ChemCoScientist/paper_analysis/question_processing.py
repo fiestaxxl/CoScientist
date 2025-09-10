@@ -7,9 +7,9 @@ from protollm.connectors import create_llm_connector
 
 from ChemCoScientist.paper_analysis.chroma_db_operations import ChromaDBPaperStore
 from ChemCoScientist.paper_analysis.prompts import sys_prompt, explore_my_papers_prompt
+from ChemCoScientist.paper_analysis.settings import allowed_providers
 from CoScientist.paper_parser.utils import convert_to_base64, prompt_func
 from definitions import CONFIG_PATH
-from ChemCoScientist.frontend.utils import update_activity
 
 load_dotenv(CONFIG_PATH)
 
@@ -37,7 +37,7 @@ def query_llm(
     Returns:
         tuple: A tuple containing the LLM's response content (str) and a dictionary of response metadata (dict).
     """
-    llm = create_llm_connector(model_url)
+    llm = create_llm_connector(model_url, extra_body={"provider": {"only": allowed_providers}})
 
     img_context = list(map(convert_to_base64, img_paths))
 
@@ -116,7 +116,7 @@ def process_question(question: str) -> dict:
                 "image_context": A set of image paths identified as relevant to the question.
                 "metadata": Additional metadata returned by the LLM query.
     """
-    txt_data, img_data = PAPER_STORE.retrieve_context(question)
+    txt_data, img_data, papers = PAPER_STORE.retrieve_context(question)
     txt_context = ""
     img_paths = set()
 
@@ -188,6 +188,7 @@ if __name__ == "__main__":
     question = 'What is the title of an article?'
     question = 'What components are involved in the synthesis of BASHY dyes, and what are the uses of these dyes?'
     question = 'What IC50 values do weakly active and highly active Bruton\'s tyrosine kinase inhibitors have?'
+    question = 'How does the synthesis of Glionitrin A/B happen?'
 
     # res = simple_query_llm(VISION_LLM_URL, question, [paper])
     res = process_question(question)

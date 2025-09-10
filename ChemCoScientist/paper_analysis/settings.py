@@ -7,7 +7,7 @@ from definitions import CONFIG_PATH
 
 load_dotenv(CONFIG_PATH)
 
-allowed_providers = ["google-vertex"]
+allowed_providers = ["google-vertex", "azure"]
 
 
 class ChromaSettings(BaseSettings):

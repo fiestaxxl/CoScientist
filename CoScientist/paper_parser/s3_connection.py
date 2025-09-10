@@ -13,11 +13,11 @@ load_dotenv(CONFIG_PATH)
 
 class S3BucketService:
     def __init__(
-        self,
-        endpoint: str,
-        access_key: str,
-        secret_key: str,
-        bucket_name: str = "default",
+            self,
+            endpoint: str,
+            access_key: str,
+            secret_key: str,
+            bucket_name: str = "default",
     ) -> None:
         self.bucket_name = bucket_name
         self.endpoint = endpoint
@@ -35,17 +35,17 @@ class S3BucketService:
         return client
 
     def upload_file_object(
-        self,
-        prefix: str,
-        source_file_name: str,
-        file_path: str,
+            self,
+            prefix: str,
+            source_file_name: str,
+            file_path: str,
     ) -> None:
         client = self.create_s3_client()
         destination_path = str(Path(prefix, source_file_name))
-        
+
         with open(file_path, 'rb') as f:
             content = f.read()
-        
+
         buffer = BytesIO(content)
         client.upload_fileobj(buffer, self.bucket_name, destination_path)
 
@@ -69,21 +69,21 @@ class S3BucketService:
         client = self.create_s3_client()
         path_to_file = str(Path(prefix, source_file_name))
         client.delete_object(Bucket=self.bucket_name, Key=path_to_file)
-        
+
     def create_new_bucket(self, bucket_name: str):
         client = self.create_s3_client()
         try:
             client.create_bucket(Bucket=bucket_name)
         except Exception as e:
             print(e)
-    
+
     def del_bucket(self, bucket_name: str):
         client = self.create_s3_client()
         try:
             client.delete_bucket(Bucket=bucket_name)
         except Exception as e:
             print(e)
-    
+
     def generate_presigned_url(self, s3_key, method: str = 'get_object', expiration=360):
         client = self.create_s3_client()
         return client.generate_presigned_url(
@@ -91,11 +91,11 @@ class S3BucketService:
             Params={'Bucket': self.bucket_name, 'Key': s3_key},
             ExpiresIn=expiration
         )
-    
+
     def download_image_from_s3(self, s3_key, local_path):
         client = self.create_s3_client()
         client.download_file(self.bucket_name, s3_key, local_path)
-    
+
     def get_image_bytes_from_s3(self, s3_key, bucket_name):
         client = self.create_s3_client()
         response = client.get_object(Bucket=bucket_name, Key=s3_key)
@@ -103,11 +103,11 @@ class S3BucketService:
 
 
 s3_service = S3BucketService(
-        endpoint=os.getenv("ENDPOINT_URL"),
-        access_key=os.getenv("ACCESS_KEY"),
-        secret_key=os.getenv("SECRET_KEY"),
-        bucket_name=os.getenv("BUCKET_NAME")
-    )
+    endpoint=os.getenv("ENDPOINT_URL"),
+    access_key=os.getenv("ACCESS_KEY"),
+    secret_key=os.getenv("SECRET_KEY"),
+    bucket_name=os.getenv("BUCKET_NAME")
+)
 
 if __name__ == "__main__":
     s3_client = s3_service.create_s3_client()
