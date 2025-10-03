@@ -14,10 +14,10 @@ class ChromaSettings(BaseSettings):
     """
     Manages settings for Chroma database and related components.
     
-        This class encapsulates configuration details for connecting to and interacting with
-        Chroma, an embedding database, as well as related embedding and reranking services.
+    This class encapsulates configuration details for connecting to and interacting with ChromaDB, an embedding
+    database, as well as related embedding and reranking services.
     
-        Class Attributes:
+    Attributes:
         - chroma_host
         - chroma_port
         - allow_reset

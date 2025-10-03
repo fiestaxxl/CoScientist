@@ -20,7 +20,7 @@ import requests
 from ChemCoScientist.paper_analysis.prompts import summarisation_prompt
 from ChemCoScientist.paper_analysis.settings import allowed_providers
 from ChemCoScientist.paper_analysis.settings import settings as default_settings
-from CoScientist.paper_parser.s3_connection import s3_service
+from CoScientist.paper_parser.s3_connection import S3BucketService, s3_service
 from CoScientist.paper_parser.parse_and_split import (
     clean_up_html,
     html_chunking,
@@ -45,7 +45,6 @@ class ExpandedSummary(BaseModel):
     """
     Expanded version of paper's summary.
     """
-
     paper_summary: str = Field(description="Summary of the paper.")
     paper_title: str = Field(
         description="Title of the paper. If the title is not explicitly specified, use the default value - 'NO TITLE'"
@@ -62,16 +61,19 @@ class CustomEmbeddingFunction(EmbeddingFunction):
     """
     Creates embeddings from text using a custom function.
 
-        This class provides a way to generate embeddings for text data using a
-        user-defined function. It takes the embedding function as a constructor argument.
+    This class provides a way to generate embeddings for text data using a
+    user-defined function. It takes the embedding function as a constructor argument.
 
-        Attributes:
+    Attributes:
         - embedding_function: The function used to generate embeddings.
     """
 
     def __call__(self, texts: Documents) -> Embeddings:
         """
         Retrieves embeddings for a list of documents using a ChromaDBPaperStore.
+        
+        This method transforms text into numerical vector representations (embeddings). These embeddings capture the
+        semantic meaning of the documents, allowing for efficient comparison and retrieval of relevant information.
 
         Args:
             self: The instance of the class.
@@ -79,10 +81,6 @@ class CustomEmbeddingFunction(EmbeddingFunction):
 
         Returns:
             Embeddings: The embeddings for the input documents (list of lists of floats).
-
-        This method transforms text into numerical vector representations (embeddings).
-        These embeddings capture the semantic meaning of the documents,
-        allowing for efficient comparison and retrieval of relevant information.
         """
         embeddings = ChromaDBPaperStore.get_embeddings(texts)
         return embeddings
@@ -92,11 +90,10 @@ class ChromaClient:
     """
     A client for interacting with a Chroma database.
 
-        This class provides methods to manage Chroma collections, including
-        creating, querying, and deleting them. It abstracts the underlying
-        ChromaDB client for easier use.
+    This class provides methods to manage Chroma collections, including creating, querying, and deleting them. It
+    abstracts the underlying ChromaDB client for easier use.
 
-        Attributes:
+    Attributes:
         - client: The ChromaDB client instance.
         - collection_name: The name of the Chroma collection to use.
         - embedding_function: The embedding function used for vectorizing data.
@@ -106,15 +103,8 @@ class ChromaClient:
         """
         Initializes the ChromaDB client.
 
-        Connects to a ChromaDB instance to enable storage and retrieval of scientific paper data for question answering.
-
-        Args:
-            self: The instance of the class.
-
-        Initializes the following class fields:
-            client: The ChromaDB client object used for interacting with the database.
-                    It is initialized using the host, port, and reset settings
-                    from the default settings.
+        Connects to a ChromaDB instance to enable storage and retrieval of scientific paper data for question
+        answering. Initializes the ChromaDB client using the host, port, and reset settings from the default settings.
 
         Returns:
             None
@@ -134,11 +124,15 @@ class ChromaClient:
         """
         Gets or creates a Chroma collection.
 
-        This method ensures a Chroma collection exists for storing and retrieving document data. It prioritizes retrieving an existing collection by name. If a collection with the given name doesn't exist, it creates a new one, configured with the specified embedding function and a default data loader. This enables efficient storage and search of scientific documents.
+        This method ensures a Chroma collection exists for storing and retrieving document data. It prioritizes
+        retrieving an existing collection by name. If a collection with the given name doesn't exist, it creates a new
+        one, configured with the specified embedding function and a default data loader. This enables efficient storage
+        and search of scientific documents.
 
         Args:
             collection (str): The name of the Chroma collection to retrieve or create.
-            embedding_function (EmbeddingFunction[Documents] | None, optional): An optional embedding function to use for the collection. If None, the default embedding function is used. Defaults to None.
+            embedding_function (EmbeddingFunction[Documents] | None, optional): An optional embedding function to use
+                for the collection. If None, the default embedding function is used. Defaults to None.
 
         Returns:
             Collection: The Chroma collection.
@@ -162,14 +156,15 @@ class ChromaClient:
         Args:
             collection: The ChromaDB collection to query.
             query_text: The text query to perform.  This is the information the user is seeking.
-            metadata_filter: Optional dictionary to filter results based on metadata.
-            chunk_num: The number of results to return.  Determines how many of the most relevant documents will be returned.
+            metadata_filter: Optional dictionary to filter results based on metadata. Defaults to None.
+            chunk_num: The number of results to return. Determines how many of the most relevant documents will be
+                returned. Defaults to 3.
 
         Returns:
             dict: A dictionary containing the query results, including:
-                - 'documents': The text of the retrieved documents.
-                - 'metadatas': The metadata associated with each document.
-                - 'distances':  A measure of similarity between the query and each document.
+                'documents' - the text of the retrieved documents;
+                'metadatas' - the metadata associated with each document;
+                'distances' - a measure of similarity between the query and each document.
         """
         return collection.query(
             query_texts=[query_text],
@@ -183,7 +178,7 @@ class ChromaClient:
         Deletes a collection and its associated data from the database.
 
         Args:
-            name: The name of the collection to delete.
+            name (str): The name of the collection to delete.
 
         Returns:
             None
@@ -193,9 +188,6 @@ class ChromaClient:
     def show_collections(self):
         """
         Retrieves the names of all collections stored within the connected Chroma database.
-
-        Args:
-            self: The instance of the ChromaClient class.
 
         Returns:
             list: A list of strings, where each string is the name of a collection.
@@ -207,12 +199,11 @@ class ChromaDBPaperStore:
     """
     A class for storing and searching paper data using ChromaDB.
 
-        This class provides functionality to store text chunks and images (converted to text)
-        from research papers in a ChromaDB vector database and perform similarity searches
-        to retrieve relevant context. It leverages embeddings for semantic search and
-        optionally uses a reranker to improve search results.
+    This class provides functionality to store text chunks and images (converted to text) from research papers in a
+    ChromaDB vector database and perform similarity searches to retrieve relevant context. It leverages embeddings
+    for semantic search and optionally uses a reranker to improve search results.
 
-        Attributes:
+    Attributes:
         - client: ChromaDB client instance.
         - collection_name: Name of the ChromaDB collection.
         - llm_name: Name of the Large Language Model.
@@ -228,9 +219,6 @@ class ChromaDBPaperStore:
         and prepares collections for storing and retrieving information from summaries, texts,
         and images extracted from scientific papers. This setup enables efficient semantic
         search and question answering over the paper content.
-
-        Args:
-            self: The object instance.
 
         Initializes the following class fields:
             llm_url (str): The URL for the Large Language Model (LLM). Defaults to VISION_LLM_URL.
@@ -279,7 +267,9 @@ class ChromaDBPaperStore:
         """
         Encodes an image file to a base64 string representation.
 
-        This is needed to store images alongside paper data in a format suitable for vector database embedding and retrieval.  Converting the image to a base64 string allows it to be included as text within the document representation.
+        This is needed to store images alongside paper data in a format suitable for vector database embedding and
+        retrieval. Converting the image to a base64 string allows it to be included as text within the document
+        representation.
 
         Args:
             image_path (str): The path to the image file.
@@ -293,13 +283,15 @@ class ChromaDBPaperStore:
 
     def _image_to_text(self, image_path: str) -> str:
         """
-        Extracts a concise textual description of an image, focusing on its core content as it relates to scientific papers.
+        Extracts a concise textual description of an image, focusing on its core content as it relates to scientific
+        papers.
 
         Args:
             image_path (str): The path to the image file.
 
         Returns:
-            str: A succinct text description of the image, geared towards understanding its role within a scientific context.
+            str: A succinct text description of the image, geared towards understanding its role within a scientific
+                context.
         """
         sys_prompt = (
             "This is an image from a scientific paper in chemistry. "
@@ -329,14 +321,18 @@ class ChromaDBPaperStore:
     def store_text_chunks_in_chromadb(self, content: list, window_size: int = 15) -> None:
         """
         Stores text chunks into ChromaDB for efficient retrieval.
+            
+        The method transforms the input text chunks into numerical embeddings and stores them, along with the
+        original text and associated metadata, into a ChromaDB collection. This allows for semantic search and
+        retrieval of relevant information based on the content of the scientific papers. Unique IDs are assigned
+        to each chunk to ensure proper indexing within the database.
 
         Args:
             content: A list of text chunks to be stored.
+            window_size (int): Window size for simultaneous texts processing. Defaults to 15.
 
         Returns:
             None
-
-        The method transforms the input text chunks into numerical embeddings and stores them, along with the original text and associated metadata, into a ChromaDB collection. This allows for semantic search and retrieval of relevant information based on the content of the scientific papers. Unique IDs are assigned to each chunk to ensure proper indexing within the database.
         """
         chunks_num = len(content)
         if chunks_num  > window_size:
@@ -369,6 +365,8 @@ class ChromaDBPaperStore:
         Args:
             image_dir (str): The path to the directory containing the images.
             paper_name (str): The name of the paper associated with the images, used for metadata.
+            url_mapping (dict): Mapping between local image paths and storage paths
+            window_size (int): Window size for simultaneous texts processing. Defaults to 15.
 
         Returns:
             None
@@ -418,12 +416,12 @@ class ChromaDBPaperStore:
         The final results are returned as a list of paper sources.
 
         Args:
-            self: The instance of the ChromaDBPaperStore class.
             query (str): The search query string.
             chunks_num (int, optional): The number of chunks to retrieve initially.
-                                         Defaults to self.sum_chunk_num if None.
+                Defaults to self.sum_chunk_num if None.
             final_chunks_num (int, optional): The number of final chunks to return.
-                                               Defaults to self.final_sum_chunk_num if None.
+                Defaults to self.final_sum_chunk_num if None.
+            meta_filter (dict, optional): Filters for more subtle vector storage search
 
         Returns:
             dict: A dictionary containing a list of paper sources under the key 'answer'.
@@ -445,12 +443,13 @@ class ChromaDBPaperStore:
         Retrieves relevant information from text and images associated with scientific papers based on a user query.
 
         This method aims to identify and extract the most pertinent data from a collection of scientific documents,
-        facilitating quick access to key insights related to a specific research question. It first identifies relevant papers and then utilizes vector similarity search
-        to find corresponding text and image chunks.
+        facilitating quick access to key insights related to a specific research question. It first identifies relevant
+        papers and then utilizes vector similarity search to find corresponding text and image chunks.
 
         Args:
             query (str): The search query used to identify relevant information.
-            relevant_papers (list, optional): A list of pre-identified relevant papers. Defaults to None, in which case a search for relevant papers is initiated.
+            relevant_papers (list, optional): A list of pre-identified relevant papers. Defaults to None, in which case
+                a search for relevant papers is initiated.
 
         Returns:
             tuple[list, dict]: A tuple containing the retrieved text and image context.
@@ -475,16 +474,17 @@ class ChromaDBPaperStore:
         text_context = self.search_with_reranker(query, raw_text_context, top_k=5)
         return text_context, image_context, relevant_papers
     
-    def search_with_reranker(self, query: str, initial_results, top_k: int = 1) -> list[tuple[str, str, dict, float]]:
+    def search_with_reranker(
+            self, query: str, initial_results: dict, top_k: int = 1
+    ) -> list[tuple[str, str, dict, float]]:
         """
         Refines initial search results by assessing the relevance of each document to the query.
 
         Args:
-            self: The instance of the class.
-            query: The search query string.
-            initial_results: A dictionary containing the initial search results with keys 'documents', 'metadatas', and 'ids'.
-                             Each key maps to a list of corresponding values.
-            top_k: The number of top results to return after reranking (default is 1).
+            query (str): The search query string.
+            initial_results (dict): A dictionary containing the initial search results with keys 'documents',
+                'metadatas', and 'ids'. Each key maps to a list of corresponding values.
+            top_k: The number of top results to return after reranking. Defaults to 1.
 
         Returns:
             list[tuple[str, str, dict, float]]: A list of tuples, where each tuple contains the document ID,
@@ -508,12 +508,11 @@ class ChromaDBPaperStore:
         """
         Adds a paper summary to the document collection for efficient information retrieval.
 
-        This method processes a paper's content by generating an expanded summary using a language model.
-        It then stores this summary, along with relevant metadata, in a vector database
-        to enable semantic search and question answering.
+        This method processes a paper's content by generating an expanded summary using a language model. It then
+        stores this summary, along with relevant metadata, in a vector database to enable semantic search and
+        question answering.
 
         Args:
-            self: The instance of the ChromaDBPaperStore class.
             paper_name (str): The name of the scientific paper.
             parsed_paper (str): The text content of the parsed paper.
             llm: The language model used to generate the summary.
@@ -539,7 +538,7 @@ class ChromaDBPaperStore:
         )
         print(f"Summary loaded for: {paper_name}")
 
-    def run_marker_pdf(self, p_path, out_path) -> None:
+    def run_marker_pdf(self, path_to_docs, out_path) -> None:
         """
         Executes a shell script to extract marker data from a PDF file.
 
@@ -549,7 +548,7 @@ class ChromaDBPaperStore:
         performance based on system resources.
 
         Args:
-            p_path (str): The path to the input PDF file.
+            path_to_docs (str): The path to the input PDF file.
             out_path (str): The path to save the output file containing marker data.
 
         Returns:
@@ -561,7 +560,7 @@ class ChromaDBPaperStore:
                     [
                         "sh",
                         os.path.join(ROOT_DIR, "ChemCoScientist/paper_analysis/marker_parsing.sh"),
-                        str(p_path),
+                        str(path_to_docs),
                         str(out_path),
                         str(self.workers)
                     ]
@@ -633,6 +632,29 @@ class ChromaDBPaperStore:
         except Exception as e:
             logger.error(f"Reranker service error: {str(e)}")
             raise
+        
+    def clean_up_collections(self, paper_name: str):
+        """
+        Deletes all documents related to one article from all collections.
+        
+        Args:
+            paper_name: A name of the article file
+
+        Returns:
+            None
+        """
+        for collection in [self.sum_collection, self.txt_collection, self.img_collection]:
+            ids_to_delete = p_store.client.query_chromadb(
+                collection,
+                "",
+                {"source": {"$in": [f"{paper_name}.pdf"]}},
+                10000
+            )["ids"][0]
+            if len(ids_to_delete) > 0:
+                collection.delete(ids=ids_to_delete)
+                print(f"Deleted {len(ids_to_delete)} documents from {collection.name} collection")
+            else:
+                print(f"No documents to delete for {paper_name}.pdf in {collection.name} collection")
 
 
 process_local_store: ChromaDBPaperStore = None
@@ -646,26 +668,33 @@ def init_process():
     allowing concurrent access and modification of paper data without interference.
     This ensures data consistency and avoids race conditions when multiple processes
     are analyzing papers simultaneously.
-
-    Args:
-        None
-
+    
     Returns:
         None
     """
     global process_local_store
     process_local_store = ChromaDBPaperStore()
+    
+
+def clean_up_storages(embedding_storage: ChromaDBPaperStore, file_storage: S3BucketService, paper_name: str):
+    try:
+        embedding_storage.clean_up_collections(paper_name)
+    except Exception as cleanup_error:
+        print(f"Error during vector store cleanup for {paper_name}: {cleanup_error}")
+    if USE_S3:
+        try:
+            file_storage.clean_up_by_prefix(paper_name)
+        except Exception as s3_cleanup_error:
+            print(f"Error during S3 cleanup for {paper_name}: {s3_cleanup_error}")
 
 
 def process_single_document(folder_path: Path):
     """
     Processes a single document (paper) from a given folder path.
 
-    This method extracts text from an HTML representation of a scientific paper,
-    cleans and structures the content, and then prepares it for efficient
-    knowledge retrieval by storing it in a vector database (ChromaDB).
-    This involves summarizing the paper, breaking it down into smaller chunks,
-    and indexing associated images as text.
+    This method extracts text from an HTML representation of a scientific paper, cleans and structures the content,
+    and then prepares it for efficient knowledge retrieval by storing it in a vector database (ChromaDB). This
+    involves summarizing the paper, breaking it down into smaller chunks, and indexing associated images as text.
 
     Args:
         folder_path (Path): The path to the folder containing the paper's HTML and PDF files.
@@ -673,12 +702,14 @@ def process_single_document(folder_path: Path):
     Returns:
         None
     """
-    paper_name = folder_path.name.replace("_marker", "")
+    paper_name = folder_path.name
     paper_name_to_load = Path(paper_name + ".pdf")
     parsed_file_path = Path(folder_path, paper_name + ".html")
     with open(parsed_file_path, 'r', encoding='utf-8') as f:
         text = f.read()
     try:
+        print("Checking for documents in ChromaDB and files in S3...")
+        clean_up_storages(process_local_store, s3_service, paper_name)
         print(f"Starting post-processing paper: {paper_name}")
         if USE_S3:
             parsed_paper, mapping = clean_up_html(folder_path, paper_name, text, s3_service, paper_name)
@@ -699,21 +730,23 @@ def process_single_document(folder_path: Path):
             clean_up_after_processing(folder_path)
     except Exception as e:
         print(f"Error in {paper_name}: {str(e)}")
+        print(f"Cleaning up data for {paper_name}...")
+        clean_up_storages(process_local_store, s3_service, paper_name)
+        print(f"Cleanup completed for {paper_name}")
 
 
 def process_all_documents(base_dir: Path):
     """
     Processes documents within subdirectories of a given base directory in parallel.
 
-    This method identifies subdirectories within the provided base directory and
-    processes each one concurrently using a thread pool. This allows for faster
-    processing of large collections of documents.
+    This method identifies subdirectories within the provided base directory and processes each one concurrently
+    using a thread pool. This allows for faster processing of large collections of documents.
 
     Args:
-      base_dir: The base directory containing the subdirectories, each representing a document.
+        base_dir: The base directory containing the subdirectories, each representing a document.
 
     Returns:
-      None
+        None
     """
     folders = [d for d in base_dir.iterdir() if d.is_dir()]
     with ThreadPoolExecutor(max_workers=2, initializer=init_process()) as pool:
@@ -730,10 +763,5 @@ if __name__ == "__main__":
     del p_store
     process_all_documents(Path(res_path))
     
-    # p_store.client.delete_collection(name="test_paper_summaries_img2txt")
-    # p_store.client.delete_collection(name="test_text_context_img2txt")
-    # p_store.client.delete_collection(name="test_image_context")
-    # print(p_store.client.show_collections())
+    # p_store.clean_up_collections("paper-filename")  # pass filename without .pdf
     
-    # print(ChromaDBPaperStore.get_embeddings(["hello", "world"]))
-    # print(ChromaDBPaperStore.rerank([["hello", "world"], ["hello", "there"]]))
