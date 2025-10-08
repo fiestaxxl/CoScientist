@@ -175,3 +175,6 @@ config.env
 PaperAnalysis/
 
 .DS_Store
+
+ChemCoScientist/tests/integration/parse_results
+ChemCoScientist/tests/integration/data/.last_activity
