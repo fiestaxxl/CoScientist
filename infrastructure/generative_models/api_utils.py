@@ -28,6 +28,12 @@ from autodock_vina_python3.src.docking_score import docking_list
 from utils.check_novelty import check_novelty_chembl
 import pickle
 from GAN.gan_lstm_refactoring.train_gan import auto_train
+import infrastructure.generative_models.GAN.gan_lstm_refactoring.scripts.model as KOSTIL_FOR_PICKL
+sys.modules['scripts.model'] = KOSTIL_FOR_PICKL
+sys.modules['scripts.utils'] = KOSTIL_FOR_PICKL
+sys.modules['scripts.layers'] = KOSTIL_FOR_PICKL
+sys.modules['scripts.tokenizer'] = KOSTIL_FOR_PICKL
+
 
 class GenData(BaseModel):
         numb_mol: int =1
@@ -229,7 +235,7 @@ def gan_auto_generator(data:GenData=Body()):
         for key,value in ml_props.items():
             props[key]=value 
     df = pd.DataFrame(data = {'Smiles':valid_mols,**props})
-    return df.to_dict()
+    return df.to_dict('list')
     #return samples
 
 

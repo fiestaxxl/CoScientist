@@ -1,5 +1,5 @@
 import torch
-from scripts.utils import LstmSeq2SeqEncoder
+from infrastructure.generative_models.GAN.gan_lstm_refactoring.scripts.utils import LstmSeq2SeqEncoder
 from torch import nn
 from torch.distributions import Categorical
 

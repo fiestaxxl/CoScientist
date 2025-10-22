@@ -2,10 +2,17 @@ import pickle as pi
 
 from huggingface_hub import HfApi
 from autotrain.utils.base_state import TrainState
-from scripts.model import MolGen
+from infrastructure.generative_models.GAN.gan_lstm_refactoring.scripts.model import MolGen
 from typing import List
 import os 
 import pandas as pd
+import sys
+import infrastructure.generative_models.GAN.gan_lstm_refactoring.scripts.model as KOSTIL_FOR_PICKL
+sys.modules['scripts.model'] = KOSTIL_FOR_PICKL
+sys.modules['scripts.utils'] = KOSTIL_FOR_PICKL
+sys.modules['scripts.layers'] = KOSTIL_FOR_PICKL
+sys.modules['scripts.tokenizer'] = KOSTIL_FOR_PICKL
+
 # steps = 8 or 10 good for ds size 1700000 samples
 def run(path_ds: str, lr: float = 0.0003, bs: int = 256, steps: int = 10, hidden: int = 256,feature_column='Smiles'):
 # data = []

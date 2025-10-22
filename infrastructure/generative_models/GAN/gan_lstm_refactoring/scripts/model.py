@@ -8,10 +8,10 @@ from torch import nn
 from torch.nn.utils import clip_grad_value_
 from torch.utils.data import DataLoader
 
-from scripts.layers import Generator, RecurrentDiscriminator
-from scripts.tokenizer import Tokenizer
+from infrastructure.generative_models.GAN.gan_lstm_refactoring.scripts.layers import Generator, RecurrentDiscriminator
+from infrastructure.generative_models.GAN.gan_lstm_refactoring.scripts.tokenizer import Tokenizer
 from torch.utils.tensorboard import SummaryWriter
-
+from infrastructure.generative_models.GAN.gan_lstm_refactoring.scripts.utils import LstmSeq2SeqEncoder
 
 writer=SummaryWriter()
 
