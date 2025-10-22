@@ -529,6 +529,176 @@ def generate_mol_by_case(
     except:
         resp.json()
 
+def generate_with_gan(num=100):
+    params = {'case_': "Alzheimer",'numb_mol': num}
+    url = conf["url_gen"] + '/gan_case_generator'
+    resp = requests.post(url, json.dumps(params))
+    return resp, resp.json()
+
+@tool
+def generate_with_gan_cyclic(
+    num: int = 10,
+    properties_conditions: dict[str, str] | None = None,
+    num_tries: int = 5,
+    success_rate: float = 0.5,
+    maximum_error: float = 0.1,
+    batch_size: int = 10,
+) -> list[str]:
+    """
+    Generate molecules with a GAN in iterative batches and filter them by property conditions. Use this a main tool for molecule generation.
+
+    This tool repeatedly requests batches of molecules from a GAN-backed generator and
+    selects those that satisfy user-defined property constraints. It stops early once
+    at least `num` molecules pass the filters or reaches the global budget of
+    `num * num_tries` generated candidates. The function returns a list of SMILES and
+    prints a short English summary with basic statistics (matches on the first batch,
+    total matches after retries, unsupported properties, etc.).
+
+    Format of `properties_conditions` (string constraints):
+      - Each property maps to a string: "<op><value>", where <op> is one of {">=", "<=", "==", ">", "<"}
+        and <value> is a float. Examples:
+          {"QED": ">=0.7", "Synthetic Accessibility": "<=3.0", "PAINS": "==0"}
+      - Equality uses a relative tolerance ±`maximum_error`. For example, "==4" with
+        maximum_error=0.05 accepts values in [3.8, 4.2].
+      - For inequalities (>=, <=, >, <), no tolerance is applied.
+
+    Guidance for agent message to conditions mapping (examples):
+      - "high QED"        → {"QED": ">=0.7"} (use 0.7–0.8 as a common threshold)
+      - "very high QED"   → {"QED": ">=0.8"}
+      - "easy to synthesize" → {"Synthetic Accessibility": "<=3.0"}
+      - "no PAINS alerts" → {"PAINS": "==0"}
+      - "strong docking"  → {"docking_score": "<=-7.0"}  (more negative is better)
+      - "low IC50"        → {"IC50": "<=1.0"}  (adjust to the project’s scale/units)
+
+    Args:
+        num (int, optional): Target number of molecules to return (after filtering).
+        properties_conditions (dict[str, str], optional): Mapping from property name to
+            a condition string ("<op><value>"), e.g. {"QED": ">=0.7"}.
+        num_tries (int, optional): Global generation multiplier. At most `num * num_tries`
+            candidates are generated across all batches.
+        success_rate (float, optional): Expected success rate to include in the printed summary
+            (informational only; not enforced).
+        maximum_error (float, optional): Relative tolerance applied only to '==' comparisons.
+        batch_size (int, optional): Batch size for each GAN generation request.
+
+    Returns:
+        list[str]: A list of SMILES strings. If no molecule satisfies the constraints,
+                   returns up to `num` best-effort molecules from all generated batches.
+
+    Behavior:
+        - Filters only by properties present in the predictor output; unknown properties
+          are ignored and reported in the printed summary.
+        - Stops early once `num` passing molecules are found.
+
+    Raises:
+        ValueError: If a condition string has an unsupported format (must be one of
+                    '>=x', '<=x', '==x', '>x', '<x').
+
+    Examples:
+        # Agent prompt → tool call
+        "Generate 10 molecules with high QED and no PAINS alerts"
+          → num=10,
+            properties_conditions={"QED": ">=0.7", "PAINS": "==0"}
+
+        # Strong docking and easy synthesis
+        "Generate 20 easy-to-synthesize molecules with strong docking"
+          → num=20,
+            properties_conditions={"Synthetic Accessibility": "<=3.0",
+                                   "docking_score": "<=-7.0"}
+    """
+    def parse_condition(cond_str):
+        s = str(cond_str).strip()
+        for op in ("<=", ">=", "==", "<", ">"):
+            if op in s:
+                return op, float(s.split(op)[1].strip())
+        raise ValueError(f"Unsupported condition format: {cond_str}")
+
+    def make_check(op, thr):
+        if op == "==":
+            low, high = thr * (1 - maximum_error), thr * (1 + maximum_error)
+            return lambda v: v is not None and low <= v <= high
+        if op == ">=":
+            return lambda v: (v is not None) and (v >= thr)
+        if op == "<=":
+            return lambda v: (v is not None) and (v <= thr)
+        if op == ">":
+            return lambda v: (v is not None) and (v > thr)
+        if op == "<":
+            return lambda v: (v is not None) and (v < thr)
+        raise ValueError(f"Unsupported operator: {op}")
+
+    max_total = int(num) * num_tries
+    all_samples, selected = [], []
+
+    first_batch = generate_with_gan(num=batch_size)[1]
+    first_batch = json.loads(first_batch)
+    props_first = first_batch
+    first_batch = first_batch['Smiles']
+    all_samples.extend(first_batch)
+
+    available = set(props_first.keys())
+    unsupported = [p for p in properties_conditions if p not in available]
+    supported = {p: properties_conditions[p] for p in properties_conditions if p in available}
+
+    checks = {p: make_check(*parse_condition(c)) for p, c in supported.items()}
+    def passes(idx, props_dict):
+        for p, check in checks.items():
+            vals = props_dict.get(p)
+            if vals is None or idx >= len(vals) or not check(vals[idx]):
+                return False
+        return True
+
+    first_ok = []
+    for i, smi in enumerate(first_batch):
+        if passes(i, props_first):
+            first_ok.append(smi)
+    selected.extend(first_ok)
+
+    if len(selected) >= num:
+        result = selected[:num]
+        summary = (
+            f"Initial pass: {len(first_ok)} matched of {len(first_batch)}. "
+            f"After retries: {len(selected)} matched of {len(all_samples)}. "
+            f"Target={num}, generated={len(all_samples)}, "
+            f"success_rate_observed={len(selected)/len(all_samples):.2f}, "
+            f"expected_success_rate={success_rate:.2f}. "
+            + (f"Unsupported properties: {unsupported}. " if unsupported else "")
+            + (f"Equality tolerance ±{int(maximum_error*100)}%." if '==' in ''.join(properties_conditions.values()) else "")
+        )
+        return result, summary
+
+    while len(all_samples) < max_total and len(selected) < num:
+        to_gen = min(num, max_total - len(all_samples))
+        if to_gen <= 0:
+            break
+        batch = generate_with_gan(num=batch_size)[1]
+        batch = json.loads(batch)
+        props_batch = batch
+        batch = batch['Smiles']
+        all_samples.extend(batch)
+
+        for i, smi in enumerate(batch):
+            if passes(i, props_batch):
+                selected.append(smi)
+                if len(selected) >= num:
+                    break
+
+    if len(selected) >= num:
+        result = selected[:num]
+    else:
+        result = all_samples[:min(num, len(all_samples))]
+
+    summary = (
+        f"Initial pass: {len(first_ok)} matched of {len(first_batch)}. "
+        f"After retries: {len(selected)} matched of {num}. "
+        f"Target={num}, generated={len(all_samples)}, "
+        f"success_rate_observed={(len(selected)/num if all_samples else 0):.2f}, "
+        f"expected_success_rate={success_rate:.2f}. "
+        + (f"Unsupported properties: {unsupported}. " if unsupported else "")
+        + (f"Equality tolerance ±{int(maximum_error*100)}%." if '==' in ''.join(properties_conditions.values()) else "")
+    )
+    print(summary)
+    return result
 
 @tool
 def run_ml_dl_training_by_daemon(
@@ -645,7 +815,8 @@ agents_tools = [
     run_ml_dl_training_by_daemon,
     get_case_state_from_server,
     get_state_from_server,
-    generate_mol_by_case,
+    generate_mol_gan,
+    # generate_mol_by_case,
     predict_prop_by_smiles,
 ]
 if __name__ == "__main__":
