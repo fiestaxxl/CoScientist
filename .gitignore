@@ -175,3 +175,14 @@ config.env
 PaperAnalysis/
 
 .DS_Store
+
+
+tools/models
+
+*.tif
+*.pt
+*.xlsx
+*.csv
+logs
+ChemCoScientist/tests/integration/parse_results
+ChemCoScientist/tests/integration/data/.last_activity
