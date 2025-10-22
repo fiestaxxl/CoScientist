@@ -205,8 +205,12 @@ def gan_auto_generator(data:GenData=Body()):
     print(sys.path)
     state = TrainState(state_path='infrastructure/generative_models/autotrain/utils/state.json')
 
-    with open(state(data.case_,'gen')['weights_path']+'/gan_weights.pkl', "rb") as f:
-        gan_mol = pickle.load(f)
+    try:
+        with open(state(data.case_,'gen')['weights_path']+'/gan_weights.pkl', "rb") as f:
+            gan_mol = pickle.load(f)
+    except:
+         gan_mol = pickle.load(open('infrastructure/generative_models/GAN/gan_lstm_refactoring/weights/v4_gan_mol_124_0.0003_8k.pkl', 'rb'))
+    
     gan_mol.eval()
     samples = gan_mol.generate_n(data.numb_mol)
     valid_mols = state()["Calculateble properties"]['Validity'](samples)
