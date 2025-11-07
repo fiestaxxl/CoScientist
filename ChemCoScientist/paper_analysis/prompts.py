@@ -74,3 +74,13 @@ paraphrase_prompt = ('You will receive a USER QUESTION that may contain extra in
                      'removing any instructions about the answer format, style, or presentation. The rewritten '
                      'question should be clear, concise, and optimized for retrieving relevant context from a '
                      'knowledge base like ChromaDB.')
+
+extract_mol_properties_prompt = (
+    'You will receive a USER QUESTION that asks you to collect a dataset of molecules and their properties.'
+    'From the USER QUESTION you should identify what properties are required.'
+    'This can be for example MIC, IC50, LD50, solubility, permeability etc.'
+    'Output a CSV table that contains only molecules IDs from the paper, e.g. 1a, 5, 28 etc. (column should be strictly named "id") '
+    'and corresponding properties (name columns with the required properties).'
+    'Units should be placed in a separate "units" column for each property.'
+    'Do this for all molecules in the paper where required properties are reported, do not miss any molecules.'
+)

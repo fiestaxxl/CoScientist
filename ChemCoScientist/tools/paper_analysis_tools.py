@@ -1,5 +1,6 @@
 import logging
 import os
+import pandas as pd
 
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -11,6 +12,7 @@ from pathlib import Path
 from ChemCoScientist.paper_analysis.chroma_db_operations import ChromaDBPaperStore
 from ChemCoScientist.paper_analysis.prompts import paraphrase_prompt
 from ChemCoScientist.paper_analysis.question_processing import process_question, simple_query_llm
+from ChemCoScientist.paper_analysis.dataset_collection import extract_mols_prop_dataset
 from ChemCoScientist.frontend.memory import SELECTED_PAPERS
 from definitions import CONFIG_PATH
 
@@ -130,11 +132,52 @@ def select_papers(query: str, papers_num: int = 15, final_papers_num: int = 3) -
         logger.error(f'select_papers ERROR: {e}')
         return {'answer': 'Could not find any papers in DB.'}
 
+@tool
+def create_dataset_from_papers(task: str, session_id: str = None) -> pd.DataFrame:
+    """
+    Creates a structured molecular property dataset from a collection of research papers (PDFs).
+    
+    Args:
+        task (str): A natural-language description of the property or dataset to extract.
+            Examples:
+                - "Extract MIC values for all compounds against Staphylococcus aureus"
+                - "Create a dataset of compounds with reported solubility and melting point"
+        session_id (str, optional): An identifier for the current user session.
+            Used to access session-specific uploaded papers from `SELECTED_PAPERS`.
+
+    Returns:
+        pd.DataFrame: Dataset containing the extraction results:
+                'id' — molecule identifier
+                'smiles' — molecular structure in SMILES format
+                extracted property columns (e.g., MIC, IC50, solubility)
+                'units' - units of the extracted property
+                `source` — filename of the originating paper
+    """
+    print('Running create_dataset_from_papers tool...')
+    print(f'task: {task}')
+    try:
+        # TODO: remove when proper frontend is added
+        if not SELECTED_PAPERS:
+            directory = Path(os.environ.get('MY_PAPERS_PATH'))
+            papers = [str(f.resolve()) for f in directory.iterdir() if f.is_file() and f.suffix.lower() == '.pdf']
+
+            if not papers:
+                return {'answer': 'No papers provided for search.'}
+        else:
+            if not SELECTED_PAPERS.get(session_id, []):
+                return {'answer': 'No papers provided for search.'}
+            papers = SELECTED_PAPERS[session_id]
+
+        return extract_mols_prop_dataset(VISION_LLM_URL, task, papers)
+    except Exception as e:
+        logger.error(f'explore_my_papers ERROR: {e}')
+        return {'answer': 'Could not extract any data from uploaded papers.'}
 
 paper_analysis_tools = [
     explore_chemistry_database,
     explore_my_papers,
     select_papers,
+    create_dataset_from_papers
 ]
 
 paper_analysis_tools_rendered = render_text_description(paper_analysis_tools)
