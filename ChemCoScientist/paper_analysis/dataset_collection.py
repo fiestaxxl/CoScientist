@@ -55,6 +55,7 @@ def mols_to_csv(results):
             ref = ";".join(refs[i]) if refs[i] != [] else "Unknown ID"
             all_refs.append(ref)
             all_smiles.append(smiles[i])
+
     df["id"] = all_refs
     df["smiles"] = all_smiles
 
@@ -99,6 +100,20 @@ def extract_props(model_url: str, question: str, pdfs: list) -> dict:
     df = pd.read_csv(StringIO(clean_text))
     return df
 
+def reorder_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Reorders DataFrame columns into a consistent layout."""
+    first_cols = ['id', 'smiles']
+    last_cols = ['units', 'source']
+
+    existing_first = [col for col in first_cols if col in df.columns]
+    existing_last = [col for col in last_cols if col in df.columns]
+    middle_cols = [col for col in df.columns if col not in existing_first + existing_last]
+
+    new_order = existing_first + middle_cols + existing_last
+
+    return df[new_order]
+
+
 def extract_mols_prop_dataset(model_url: str, question: str, pdfs: list) -> pd.DataFrame:
     """
     Extracts a dataset with molecular SMILES and properties from PDF documents
@@ -125,11 +140,14 @@ def extract_mols_prop_dataset(model_url: str, question: str, pdfs: list) -> pd.D
         all_datasets.append(merged_df)
         
     combined_dataset = pd.concat(all_datasets, ignore_index=True)
+    final_dataset = reorder_columns(combined_dataset)
+    final_dataset.to_csv("final_dataset.csv", sep="\t", index=False)
     
-    return combined_dataset
+    return final_dataset
 
 
 # if __name__ == "__main__":
-#     pdfs = [r"C:\Users\computer\Documents\GitHub\CoScientist\ChemCoScientist\paper_analysis\papers\187152108785908820.pdf"]
+#     pdfs = [r"C:\Users\computer\Documents\GitHub\CoScientist\ChemCoScientist\paper_analysis\papers\187152108785908820.pdf",
+#             r"C:\Users\computer\Documents\GitHub\CoScientist\ChemCoScientist\paper_analysis\papers\ph16040516.pdf"]
 #     question = "Collect a dataset of molecules and their MIC values against Staphylococcus aureus."
 #     extract_mols_prop_dataset(VISION_LLM_URL, question, pdfs)
