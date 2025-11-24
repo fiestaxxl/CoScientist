@@ -2,6 +2,10 @@ import glob
 import logging
 import os
 
+import asyncio
+import threading
+from queue import Queue, Empty
+
 import streamlit as st
 from io import BytesIO
 from langgraph.errors import GraphRecursionError
@@ -170,7 +174,7 @@ def message_handler(user_query: str, placeholder: st.delta_generator.DeltaGenera
                     try:
                         #answers = [{'plan': [['find info'], ['calculate_data', 'get_result']]}, {'response': 'hahaha'}]
                         #for result in answers:
-                        for result in st.session_state.backend.stream(inputs, "1"):
+                        for result in async_to_sync(st.session_state.backend.stream(inputs, "1")):
                             print("=================new step=================")
                             #print(result)
 
@@ -471,3 +475,33 @@ def display_paper_analysis_metadata(message, message_index):
                     st.write(f"**{key}:** {value}")
             else:
                 st.write("No metadata available")
+
+
+
+def async_to_sync(async_gen):
+    queue = Queue()
+    
+    async def produce():
+        try:
+            async for item in async_gen:
+                queue.put(item)
+        finally:
+            queue.put(None)  # signal completion
+
+    # Background thread to run async loop
+    def runner():
+        asyncio.run(produce())
+
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+
+    # Yield results synchronously as they arrive
+    while True:
+        try:
+            item = queue.get(timeout=0.1)
+        except Empty:
+            continue
+
+        if item is None:
+            break
+        yield item

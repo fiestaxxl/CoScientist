@@ -7,8 +7,8 @@ from definitions import CONFIG_PATH
 
 load_dotenv(CONFIG_PATH)
 
-OPENCHEMIE_HOST = os.environ["OPENCHEMIE_HOST"]
-OPENCHEMIE_PORT = os.environ["OPENCHEMIE_PORT"]
+OPENCHEMIE_HOST = os.environ.get("OPENCHEMIE_HOST")
+OPENCHEMIE_PORT = os.environ.get("OPENCHEMIE_PORT")
 OPENCHEMIE_URL = f"http://{OPENCHEMIE_HOST}:{OPENCHEMIE_PORT}"
 
 

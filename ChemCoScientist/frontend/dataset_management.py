@@ -49,13 +49,13 @@ def dataset_management(db, user_id='user'):
                 return
 
             # Display files in an organized manner
-            display_user_files(user_files, user_id)
+            display_user_files(user_files, user_id, db)
 
         except Exception as e:
             #logger.error(f"Error retrieving files for user {user_id}: {e}")
             st.error(f"❌ Error loading files: {str(e)}")
 
-def display_user_files(user_files, user_id):
+def display_user_files(user_files, user_id, db):
     """
     Display user files with download and preview options.
     
@@ -76,9 +76,9 @@ def display_user_files(user_files, user_id):
     #logger.info(f'Displaying {len(user_files)} files for user {user_id}')
     
     for i, file_data in enumerate(user_files):
-        display_file_row(file_data, i, user_id)
+        display_file_row(file_data, i, user_id, db)
 
-def display_file_row(file_data, index, user_id):
+def display_file_row(file_data, index, user_id, db):
     """
     Display a single file row with metadata, preview, and download options.
     
@@ -110,6 +110,62 @@ def display_file_row(file_data, index, user_id):
     with col2:
         # Download button
         display_download_button(file_data)
+    
+    # with col3:
+    #     display_delete_button(file_data, db)
+
+def display_delete_button(file_data, db):
+    """
+    Display delete button with confirmation dialog.
+    
+    Args:
+        file_data (dict): File data from database
+        db: Database instance
+        user_id (str): User ID for session tracking
+    """
+    file_id = file_data.get('id')
+    filename = file_data.get('filename', 'Unknown file')
+    
+    # Create a unique key for the delete button and dialog
+    delete_key = f"delete_{file_id}"
+    confirm_key = f"confirm_delete_{file_id}"
+    
+    # Initialize session state for delete confirmation if not exists
+    if confirm_key not in st.session_state:
+        st.session_state[confirm_key] = False
+    
+    if st.session_state[confirm_key]:
+        # Show confirmation dialog
+        st.warning(f"Are you sure you want to delete **{filename}**?")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Yes, Delete", key=f"yes_{delete_key}", use_container_width=True):
+                try:
+                    # Perform deletion
+                    success = db.remove_file(file_id, delete_physical_file=True)
+                    if success:
+                        st.success(f"✅ Successfully deleted {filename}")
+                        st.session_state[confirm_key] = False
+                        # Refresh the page to update the file list
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Failed to delete {filename}")
+                except Exception as e:
+                    st.error(f"❌ Error deleting file: {str(e)}")
+        
+        with col2:
+            if st.button("❌ Cancel", key=f"cancel_{delete_key}", use_container_width=True):
+                st.session_state[confirm_key] = False
+                st.rerun()
+    
+    else:
+        # Show delete button
+        if st.button("X", key=delete_key, use_container_width=True, 
+                    type="secondary", help=f"Delete {filename}"):
+            st.session_state[confirm_key] = True
+            st.rerun()
+
 
 def display_file_preview(file_data):
     """
@@ -182,7 +238,7 @@ def display_csv_preview(file_data, file_path):
             st.write("**📈 Distribution Plots:**")
             
             # Let user select column for histogram
-            selected_col = st.selectbox("Select column for distribution:", numeric_cols)
+            selected_col = st.selectbox("Select column for distribution:", numeric_cols, key=f"dist_col_select_{file_data.get('id', 'preview')}")
             
             col1, col2 = st.columns(2)
             with col1:

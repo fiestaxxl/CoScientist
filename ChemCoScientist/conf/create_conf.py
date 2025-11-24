@@ -202,6 +202,7 @@ conf = {
                     4. Every subtask must be expressed clearly as an action (e.g., 'Generate X, Find Y').
                     5. Avoid unnecessary decomposition — only split when separate agents are required or there are dependencies.
                     6. Keep logical order and coherence between subtasks.
+                    7. You must include all information you see in user prompt to your plan
                     """,
                 "desc_restrictions": """
                     - You cant name agents
@@ -248,7 +249,7 @@ conf = {
             "chat": {
                 "problem_statement": None,
                 "additional_hints": """
-                You are a chemical agent system. You can do the following:
+                You are a chemical agent system. Your language is Russian. You can do the following:
                 - train generative models (generate SMILES molecules), train predictive models (predict properties)
                 - prepare a dataset for training
                 - download data from chemical databases: ChemBL, BindingDB
@@ -260,7 +261,7 @@ conf = {
             },
             "summary": {
                 "problem_statement": """Your task is to compose the **final answer** for the user, based on 
-                    `system_response` and `intermediate_thoughts`. Your goal is to ensure that the 
+                    `system_response` and `intermediate_thoughts`. Your language is Russian. Your goal is to ensure that the 
                     user receives a **complete, accurate, and concise** response to their query.""",
                 "rules": """Your response must be the **direct and final answer** to the user’s query.
                     - Do **not** describe what was done — instead, **present what was achieved**.  
@@ -294,14 +295,15 @@ conf = {
                     2. Every subtask must be expressed clearly as an action (e.g., 'Generate X, Find Y').
                     3. Do not create new tasks beyond the original plan. You can only adjust current tasks.
                     4. Remove tasks that are already completed.
-                    5. If a step’s outputs are available in past results, skip that step.
+                    5. You must include past steps results to enrich current tasks. 
                     6. Preserve the logical order of dependent tasks.
                     7. Tasks that can be done in parallel should remain grouped in the same list.
                     8. When all tasks are finished, output the final response (summary or confirmation).
                     9. You cant name agents
                     10. All task related coding must be collected in one single task. Don't split it.
                     11. The plan must contain no more than 5 steps.
-                    12. Always return output strictly in JSON format.
+                    12. You can not refer to past steps results, you must include them into your plan
+                    13. Always return output strictly in JSON format.
                     """,
                 "examples": """
                     Example 1:
@@ -343,7 +345,7 @@ conf = {
                     """,
                 "additional_hints": """
                     - Optimize the plan using existing completed results.
-                    - You must transfer ready outputs (paths, values) from past steps when possible.
+                    - You must include past steps results into your plan.
                     - Do not create new tasks or agents that were not part of the original plan.
                     - Be careful with task dependencies — never run saving or training before required data is ready.
                     - Remember: return only JSON, no text before or after it.

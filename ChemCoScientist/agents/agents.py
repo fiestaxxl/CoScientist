@@ -113,7 +113,14 @@ def coder_agent(state: dict, config: dict):
         additional_authorized_imports=["*"],
     )
 
-    agent_input = coder_prompt.format(directory=os.path.join(ROOT_DIR, os.environ['DS_STORAGE_PATH']), task=task)
+    plan_str = plan
+    if isinstance(plan[0], list):
+        plan_str = [item for sublist in plan for item in sublist]
+
+    plan_str = ";".join(plan_str)
+    user_task = f"For the following plan: {plan_str}; your task is {task}"
+
+    agent_input = coder_prompt.format(directory=os.path.join(ROOT_DIR, os.environ['DS_STORAGE_PATH']), task=user_task)
     response = agent.run(agent_input)
 
     file_name = response.get('file_name')
@@ -168,6 +175,7 @@ def ml_dl_agent(state: dict, config: dict) -> Command:
     print("--------------------------------")
 
     task = state["task"]
+    plan = state["plan"]
     config_cur_agent = config["configurable"]["additional_agents_info"]["ml_dl_agent"]
 
     model = (
@@ -182,7 +190,15 @@ def ml_dl_agent(state: dict, config: dict) -> Command:
         additional_authorized_imports=["*"],
     )
 
-    agent_input = automl_prompt.format(directory=os.path.join(ROOT_DIR, os.environ['DS_STORAGE_PATH']), task=task)
+    plan_str = plan
+    if isinstance(plan[0], list):
+        plan_str = [item for sublist in plan for item in sublist]
+
+    plan_str = ";".join(plan_str)
+    user_task = f"For the following plan: {plan_str}; your task is {task}"
+
+
+    agent_input = automl_prompt.format(directory=os.path.join(ROOT_DIR, os.environ['DS_STORAGE_PATH']), task=user_task)
     response = agent.run(agent_input)
 
     return Command(update={

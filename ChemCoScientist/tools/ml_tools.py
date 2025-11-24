@@ -466,6 +466,9 @@ async def agenerate_with_gan_cyclic(num: int = 10,
         if valid(idx, all_props):
             output.append((smile, {key: safe_props[key][idx] for key in check_dict}))
     
+    if len(output)<1:
+        return 'I could not generate such molecules, as your filter is to strict'
+
     return output[:num] if len(output)>num else output
 
 @tool
@@ -476,7 +479,7 @@ def get_state_from_server(url: str = "pred", case: Optional[str] = None) -> Unio
     If case is provided retrieves the current status and metrics for a specific case/model from the server.
     
     Args:
-        url (str): Specifies the server endpoint. Use 'pred' for predictive models or 'gen' for generative models. Defaults to "pred".
+        url (str): Specifies the server endpoint. Use 'pred'. Defaults to "pred".
         case (str, optional): The name of the case/model to query. Defaults to None
     Returns:
         dict or str: A dictionary containing model state information (status, description, metrics) if successful.  Returns a string  if a server-side error (status code 500) occurs.
