@@ -432,7 +432,7 @@ async def agenerate_with_gan_cyclic(num: int = 10,
             '>': operator.gt,
             '<=': operator.le,
             '>=': operator.ge,
-            '==': lambda a, b: abs(a - b) < tolerance
+            '==': lambda a, b: abs(a - b) < tolearance
         }
     
         if op_str not in op_map:
