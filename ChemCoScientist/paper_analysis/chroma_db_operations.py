@@ -451,8 +451,8 @@ class ChromaDBPaperStore:
             self.sum_collection, query, chunk_num=chunks_num, metadata_filter=meta_filter
         )
         docs = self.search_with_reranker(query, raw_docs, top_k=final_chunks_num)
-        res = [doc[2]["source"] for doc in docs]
-        return {'answer': res}
+        res = {doc[2]["source"]: {"title": doc[2]["paper_title"], "year": doc[2]["publication_year"]} for doc in docs}
+        return res
 
     def retrieve_context(
             self, query: str, relevant_papers: dict = None
@@ -480,28 +480,53 @@ class ChromaDBPaperStore:
         raw_text_context = self.client.query_chromadb(
             self.txt_collection,
             query,
-            {"source": {"$in": relevant_papers['answer']}},
+            {"source": {"$in": list(relevant_papers.keys())}},
             self.txt_chunk_num,
         )
         image_context = self.client.query_chromadb(
             self.img_collection,
             query,
-            {"source": {"$in": relevant_papers['answer']}},
+            {"source": {"$in": list(relevant_papers.keys())}},
             self.img_chunk_num,
         )
-        for img in image_context["metadatas"][0]:
-            if img.get("molecules") is None or img.get("reactions") is None:
-                image_bytes = load_image_as_binary(img["image_path"])
-                img["molecules"] = str(extract_molecules_from_figure(image_bytes))
-                img["reactions"] = str(extract_reactions_from_figure(image_bytes))
-
-        self.client.update_chroma_collection(
-            self.img_collection,
-            image_context["ids"][0],
-            image_context["metadatas"][0]
-        )
+        # Get SMILES for molecules and reactions
+        # for img in image_context["metadatas"][0]:
+        #     self.get_molecule_and_reactions_data(img)
+        #
+        # self.client.update_chroma_collection(
+        #     self.img_collection,
+        #     image_context["ids"][0],
+        #     image_context["metadatas"][0]
+        # )
         text_context = self.search_with_reranker(query, raw_text_context, top_k=5)
-        return text_context, image_context, relevant_papers
+
+        # Add title and year to metadata
+        for cont in text_context:
+            cont[2]['title'] = relevant_papers[cont[2]['source']]['title']
+            cont[2]['year'] = relevant_papers[cont[2]['source']]['year']
+        for image in image_context['metadatas'][0]:
+            image['title'] = relevant_papers[image['source']]['title']
+            image['year'] = relevant_papers[image['source']]['year']
+
+        return text_context, image_context
+
+    @staticmethod
+    def get_molecule_and_reactions_data(img: dict):
+        if img.get("molecules") is None or img.get("reactions") is None:
+            image_bytes = load_image_as_binary(img["image_path"])
+            img["molecules"] = str(extract_molecules_from_figure(image_bytes))
+            img["reactions"] = str(extract_reactions_from_figure(image_bytes))
+
+    def get_image_data(self, file_path: str) -> dict:
+        image_data = self.client.query_chromadb(
+            self.img_collection,
+            "",
+            {"image_path": file_path}
+        )
+        img = image_data["metadatas"][0][0]
+        self.get_molecule_and_reactions_data(img)
+        # TODO: add data to DB
+        return img
     
     def search_with_reranker(
             self, query: str, initial_results: dict, top_k: int = 1

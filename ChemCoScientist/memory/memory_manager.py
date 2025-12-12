@@ -241,17 +241,19 @@ class HybridMemoryManager:
             await self.add_message_async(role='system', content=response_data["response"].content)
             
 class MemoryGraph(HybridMemoryManager):
-    def __init__(self, config: Dict, llm: BaseChatModel, embeddings: Embeddings = CustomEmbeddings(), k: int = 3, short_memory_size: int = 3, logger = None):
+    def __init__(self, config: Dict, llm: BaseChatModel, embeddings: Embeddings = CustomEmbeddings(), k: int = 3,
+                 short_memory_size: int = 3, logger=None):
         super().__init__(llm, short_memory_size, embeddings, logger)
         self.graph = GraphBuilder(config)
         self.k = k
 
-    async def stream(self, inputs: dict, image_path: str = "", user_id: str = "1") -> AsyncGenerator[Dict[str, Any], None]:
+    async def stream(self, inputs: dict, image_path: str = "", user_id: str = "1") -> \
+            AsyncGenerator[Dict[str, Any], None]:
         user_text = inputs.get('input')
         if not user_text:
             raise ValueError(f"Inputs must have key 'input': {inputs}")
 
-        input_msg = self.resolve_message(user_input=user_text, k = self.k)
+        input_msg = self.resolve_message(user_input=user_text, k=self.k)
         inputs['input'] = input_msg
 
         responses = []

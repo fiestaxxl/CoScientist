@@ -346,8 +346,8 @@ def paper_analysis_agent(state: dict, config: dict) -> Command:
     """
     print("--------------------------------")
     print("Paper agent called")
-    print("Current task:")
-    print(state["task"])
+    print(f"Current task: {state['task']}")
+    print(f"Current input: {state['input']}")
     print("--------------------------------")
 
     llm: BaseChatModel = config["configurable"]["llm"]
@@ -356,7 +356,7 @@ def paper_analysis_agent(state: dict, config: dict) -> Command:
 
     # TODO: update this when proper frontend is added
     try:
-        current_prompt = f'{paper_agent_prompt}\n session_id = {st.session_state.session_id}'
+        current_prompt = f'{paper_agent_prompt}\n session_id = {config["configurable"]["session_id"]}'
     except:
         current_prompt = f'{paper_agent_prompt}\nsession_id is not needed in this case, pass None'
 
@@ -373,7 +373,10 @@ def paper_analysis_agent(state: dict, config: dict) -> Command:
             updated_metadata = state.get("metadata", {}).copy()
             pa_metadata = {"paper_analysis": result.get("metadata")}
             if pa_metadata["paper_analysis"]:
-                updated_metadata.update(pa_metadata)
+                if "paper_analysis" in updated_metadata.keys():
+                    updated_metadata["paper_analysis"].update(pa_metadata["paper_analysis"])
+                else:
+                    updated_metadata.update(pa_metadata)
 
             if type(result["answer"]) is list:
                 result["answer"] = ', '.join(result["answer"])
@@ -427,7 +430,7 @@ def chem_ocr_agent(state: dict, config: dict) -> Command:
 
     # TODO: update this when proper frontend is added
     try:
-        current_prompt = f'{chem_ocr_prompt}\n session_id = {st.session_state.session_id}'
+        current_prompt = f'{chem_ocr_prompt}\n session_id = {config["configurable"]["session_id"]}'
     except:
         current_prompt = f'{chem_ocr_prompt}\nsession_id is not needed in this case, pass None'
 

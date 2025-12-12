@@ -30,19 +30,20 @@ import conf.create_conf as cc
 # inputs = {"input": "What is the effect of using a lower molecular weight PEO (MW = 10,000 g/mol ) within the PI host on the performance of a Li/LiFePO₄ all-solid-state cell at a lower operating temperature of 30°C?"}
 
 # Paper analysis
-# graph = GraphBuilder(cc.conf)
-# inputs = {"input": "question = 'How does the synthesis of Glionitrin A/B happen?'"}
+# inputs = {"input": "How does the synthesis of Glionitrin A/B happen?"}
+# inputs = {"input": "How does the calculated spin-wave spectrum of Cu₂(OH)₃X vary as the halide (X) is changed from Cl to Br to I, particularly concerning the bandwidth in the interchain direction?"}
+# inputs = {"input": "Collect a dataset of molecules and their MIC values against Staphylococcus aureus. Only use the create_dataset_from_papers tool"}
+# inputs = {"input": "Расчетное исследование реакций Дильса-Альдера с участием циклопентадиена предлагает классификацию на три типа в зависимости от полярности. Опишите эти три категории, указав их определяющие характеристики с точки зрения переноса заряда (CT) в переходном состоянии и соответствующие активационные барьеры (ΔE‡)."}
 
 # ChemOCR
-graph = GraphBuilder(cc.conf)
-inputs = {"input": "question = 'Extract all molecules from these images.'"}
+inputs = {"input": "Extract all molecules from these images."}
 
 if __name__ == "__main__":
-    for step in graph.stream(inputs, user_id="1"):
+    graph = GraphBuilder(cc.conf)
+    for step in graph.stream(inputs, user_id="1", session_id="1"):
         print(f"=====\n"
               f"PLAN: {step['plan']}\n"
-              f"PAST_STEPS: {[f"{i[:30]}..." for i in step['past_steps']]}\n"
+              f"PAST_STEPS: {[f'{i[:30]}...' for i in step['past_steps']]}\n"
               f"NEXT_STEPS: {step['next']}\n"
               f"METADATA: {step['metadata']}\n"
               f"=====")
-

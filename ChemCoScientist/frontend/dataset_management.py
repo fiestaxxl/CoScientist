@@ -30,7 +30,7 @@ def dataset_management(db, user_id='user'):
 
     col1, col2, col3 = st.columns([3, 1, 1])
     with col1:
-        st.header("📁 File Management")
+        st.header("📁 Dataset Management")
     with col3:  # Button in the rightmost column
         if st.button("🔄 Refresh", key="refresh_files"):
             st.rerun()

@@ -236,6 +236,8 @@ conf = {
                     5. Avoid unnecessary decomposition — only split when separate agents are required or there are dependencies.
                     6. Keep logical order and coherence between subtasks.
                     7. You must include all information you see in user prompt to your plan
+                    8. If you get a general question about chemistry first call paper_analysis_agent. Use web search
+                    only if paper_analysis_agent has no answer. 
                     """,
                 "desc_restrictions": """
                     - You cant name agents
@@ -277,6 +279,7 @@ conf = {
                     - If multiple molecules, files, or entities are processed in the same way, group those actions together as parallel subtasks.
                     - When an earlier step produces data required for another (e.g., training before prediction), make sure the dependent step comes later.
                     - If the user request is ambiguous, infer a reasonable decomposition based on tool capabilities.
+                    - If the user requests molecule or reaction extraction from images call chem_ocr_agent.
                     """,
             },
             "chat": {
@@ -289,7 +292,10 @@ conf = {
                 - perform calculations with chemical python libraries
                 - solve problems of nanomaterial synthesis
                 - analyze chemical articles
+                - extract molecules and reactions from images
                 If user ask something like "What can you do" - make answer yourself!
+                
+                If user asks to extract some data from images do not answer the question yourself, pass it to the planner
                     """,
             },
             "summary": {
@@ -298,22 +304,22 @@ conf = {
                     user receives a **complete, accurate, and concise** response to their query.""",
                 "rules": """Your response must be the **direct and final answer** to the user’s query.
                     - Do **not** describe what was done — instead, **present what was achieved**.  
-                    - Extract and summarize **all key insights, results, and conclusions**.  
+                    - Extract and summarize **all insights, results, and conclusions**. 
+                    - In your response, include every piece of information provided by paper_analysis_agent. 
+                      Ensure the answer is fully comprehensive and no data is overlooked or omitted. 
                     - Avoid unnecessary filler, explanations, or meta-text.  
                     - When appropriate, organize the answer as a **short report** with sections 
-                    such as *Summary*, *Results*, *Findings*, *Conclusion*, etc.  
+                    such as *Summary*, *Results*, *Findings*, *Conclusion*, etc. (They must be in Russian.)  
+                    - The *Results* section must contain all facts provided by the agents
                     - Always ensure your response **directly answers the user’s query**.  
                     - Respond in **markdown** format.
-                    - Double-check that your answer is **complete, accurate, and self-contained**.""",
+                    - Double-check that your answer is **complete, accurate, and self-contained**.
+                    - You must exclude any non-standard or unreadable symbols (hieroglyphs).""",
 
-                "additional_hints": """                
-                    Never include full file paths — only file names.  
-                    If multiple agents or nodes were involved (e.g., `paper_analysis_agent`, `web_search`), 
-                    summarize their contributions clearly, for example:
-
-                    **paper_analysis:** <summary of paper_analysis_agent result>  
-                    **web_search:** <summary of web_search result>  
+                "additional_hints": """
+                    Never include full file paths — only file names.
                     """,
+
             },
             "replanner": {
                 "problem_statement": """

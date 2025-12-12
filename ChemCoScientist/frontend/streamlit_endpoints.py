@@ -133,6 +133,7 @@ def select_file(file_name: str) -> None:
     if file_path not in SELECTED_PAPERS.get(session_id, []):
         SELECTED_PAPERS.get(session_id, []).append(file_path)
     logger.info(f'SELECTED_PAPERS: {SELECTED_PAPERS}')
+    st.session_state.just_selected_file = True  # Flag the change
 
 
 def deselect_file(file_name: str) -> None:

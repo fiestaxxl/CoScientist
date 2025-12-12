@@ -9,9 +9,11 @@ from langchain_core.tools import tool
 from protollm.connectors import create_llm_connector
 from pathlib import Path
 
+from ChemCoScientist.chemical_utils.openchemie_functions import extract_reactions_from_pdf, extract_molecules_from_pdf
 from ChemCoScientist.paper_analysis.chroma_db_operations import ChromaDBPaperStore
 from ChemCoScientist.paper_analysis.prompts import paraphrase_prompt
 from ChemCoScientist.paper_analysis.question_processing import process_question, simple_query_llm
+from ChemCoScientist.frontend.memory import SELECTED_PAPERS, MOLECULE_DATA
 from ChemCoScientist.paper_analysis.dataset_collection import extract_mols_prop_dataset
 from ChemCoScientist.frontend.memory import SELECTED_PAPERS
 from definitions import CONFIG_PATH
@@ -81,7 +83,27 @@ def explore_my_papers(task: str, session_id: str = None) -> dict:
                 return {'answer': 'No papers provided for search.'}
             papers = SELECTED_PAPERS[session_id]
 
-        return simple_query_llm(VISION_LLM_URL, task, papers)
+        print(f'PAPERS from explore_my_papers: {papers}')
+
+        # if MOLECULE_DATA.get(session_id, []):
+        #     print(f'Reading pdf image description from memory')
+        #     img_descriptions = MOLECULE_DATA.get(session_id)
+        # else:
+        #     print(f'Requesting pdf image description from server...')
+        #     img_descriptions = 'This is additional information about the reactions and molecules that are presented' \
+        #                        'on the images in the paper. They are passed in the same order as papers themselves.' \
+        #                        'Use them to answer the question.\n\n'
+        #     for paper in papers:
+        #         with open(paper, 'rb') as paper_bytes:
+        #             img_descriptions += f'Reactions: {str(extract_reactions_from_pdf(paper_bytes))}\n'
+        #         with open(paper, 'rb') as paper_bytes:
+        #             img_descriptions += f'Molecules: {str(extract_molecules_from_pdf(paper_bytes))}\n'
+        #         img_descriptions += '\n\n'
+        #     MOLECULE_DATA[session_id] = img_descriptions
+        #
+        # print(f'pdf img description: {img_descriptions}')
+
+        return simple_query_llm(VISION_LLM_URL, task, papers, "")
     except Exception as e:
         logger.error(f'explore_my_papers ERROR: {e}')
         return {'answer': 'Could not extract any data from uploaded papers.'}
@@ -90,10 +112,10 @@ def explore_my_papers(task: str, session_id: str = None) -> dict:
 def paraphrase_query(query: str) -> dict:
     """
     Transforms a user's chemistry question into a refined query optimized for finding relevant scientific papers.
-    
+
     Args:
         query (str): The user's initial question about a chemistry topic.
-    
+
     Returns:
         dict: A dictionary containing the paraphrased query as 'answer'. This improved query aims to enhance the accuracy and effectiveness of searches for related research papers.
     """
@@ -127,7 +149,8 @@ def select_papers(query: str, papers_num: int = 15, final_papers_num: int = 3) -
         print('Running select_papers tool...')
         print(f'query: {query}')
         paper_store = ChromaDBPaperStore()
-        return paper_store.search_for_papers(query, papers_num, final_papers_num)
+        res_papers = paper_store.search_for_papers(query, papers_num, final_papers_num)
+        return {"answer": res_papers}
     except Exception as e:
         logger.error(f'select_papers ERROR: {e}')
         return {'answer': 'Could not find any papers in DB.'}
@@ -136,7 +159,7 @@ def select_papers(query: str, papers_num: int = 15, final_papers_num: int = 3) -
 def create_dataset_from_papers(task: str, session_id: str = None) -> pd.DataFrame:
     """
     Creates a structured molecular property dataset from a collection of research papers (PDFs).
-    
+
     Args:
         task (str): A natural-language description of the property or dataset to extract.
             Examples:
@@ -168,15 +191,17 @@ def create_dataset_from_papers(task: str, session_id: str = None) -> pd.DataFram
                 return {'answer': 'No papers provided for search.'}
             papers = SELECTED_PAPERS[session_id]
 
-        return extract_mols_prop_dataset(VISION_LLM_URL, task, papers)
+        final_dataset = extract_mols_prop_dataset(VISION_LLM_URL, task, papers)
+        return {'answer': 'This is the retrieved data:',
+                'metadata': {'dataset': final_dataset.to_dict()}}
     except Exception as e:
-        logger.error(f'explore_my_papers ERROR: {e}')
+        logger.error(f'create_dataset_from_papers ERROR: {e}')
         return {'answer': 'Could not extract any data from uploaded papers.'}
 
 paper_analysis_tools = [
     explore_chemistry_database,
     explore_my_papers,
-    select_papers,
+    # select_papers,
     create_dataset_from_papers
 ]
 

@@ -21,11 +21,11 @@ def init_page():
         None
     """
     st.set_page_config(
-        page_title="🧪 Chemistry Chatbot", 
+        page_title="🧪 CoScientist",
         initial_sidebar_state="expanded",
         layout = 'wide'
     )
-    st.title("🧪 Chemistry Chatbot")
+    st.title("🧪 CoScientist")
     st.sidebar.image(
         os.path.join(ROOT_DIR, "ChemCoScientist/frontend/logo_na_plashke_russkiy_belyy.png"), width=150
     )
@@ -102,7 +102,7 @@ def init_session_state():
         None
     """
     if "language" not in st.session_state:
-        st.session_state.language = "English"
+        st.session_state.language = "Русский"
 
     if "main_model_input" not in st.session_state:
         st.session_state.main_model_input = None

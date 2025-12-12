@@ -34,7 +34,7 @@ def init_language():
 
         on_lang = st.selectbox(
             "Select language",
-            placeholder="English",
+            placeholder="Русский",
             key="language",
             options=["English", "Русский"],
         )
@@ -327,6 +327,7 @@ def init_backend():
     from ChemCoScientist.conf.create_conf import conf
     conf['configurable']['logger'] = logger
     conf['files_db'] = JSONFileDB(os.environ.get('MEMORY_DB_PATH', 'ChemCoScientist/data_store/files_db.json'))
+    conf['configurable']['session_id'] = st.session_state.session_id
     #st.session_state.backend = GraphBuilder(conf)
     if "backend" not in st.session_state:
         st.session_state.backend = MemoryGraph(config=conf, llm=conf['configurable']['llm'], logger=logger)

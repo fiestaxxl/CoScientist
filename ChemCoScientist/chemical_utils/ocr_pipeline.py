@@ -82,7 +82,8 @@ def molecules_ocr(images: list[str]) -> dict:
                 bboxes.append(entry.get("bbox"))
         
         annotated_img = draw_bboxes_on_image(img_bytes, bboxes)
-        out_path = img_path.with_name(f"{img_path.stem}_annotated.jpg")
+        os.makedirs(Path(os.environ.get('PROCESSED_IMG_STORAGE_PATH')), exist_ok=True)
+        out_path = Path(os.environ.get('PROCESSED_IMG_STORAGE_PATH'), f"{img_path.stem}_annotated.jpg")
         out_path.write_bytes(annotated_img)
             
         result[img_path.name] = smiles
@@ -157,7 +158,8 @@ def reactions_ocr(images: list[str]) -> dict:
                         result[img_path.name]["conditions"].append(c["text"])
         
         annotated_img = draw_bboxes_on_image(img_bytes, bboxes)
-        out_path = img_path.with_name(f"{img_path.stem}_annotated.jpg")
+        os.makedirs(Path(os.environ.get('PROCESSED_IMG_STORAGE_PATH')), exist_ok=True)
+        out_path = Path(os.environ.get('PROCESSED_IMG_STORAGE_PATH'), f"{img_path.stem}_annotated.jpg")
         out_path.write_bytes(annotated_img)
         
         annotated_images.append(out_path.as_posix())

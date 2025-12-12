@@ -38,7 +38,7 @@ def extract_reactions_from_figure(image: bytes) -> List[Dict]:
         response (List[Dict]): List of reactions on the image.
     """
     response = requests.post(f"{OPENCHEMIE_URL}/extract_reactions_from_figure/", files={"image": image})
-    return response.json()["data"]  
+    return response.json()["data"]
 
 
 def extract_molecules_from_pdf(file: bytes) -> List[Dict]:

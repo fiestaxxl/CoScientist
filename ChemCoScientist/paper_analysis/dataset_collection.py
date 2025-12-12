@@ -5,7 +5,7 @@ import fitz
 from io import BytesIO, StringIO
 from PIL import Image
 from langchain_core.messages import SystemMessage, HumanMessage
-from protollm.connectors import create_llm_connector
+from protollm.connectors import create_llm_connector, get_allowed_providers
 
 from ChemCoScientist.chemical_utils.openchemie_functions import extract_molecules_from_figure
 from ChemCoScientist.paper_analysis.settings import allowed_providers
@@ -70,7 +70,7 @@ def extract_props(model_url: str, question: str, pdfs: list) -> dict:
 
     if pdfs:
         update_activity(os.path.dirname(pdfs[0]))
-    llm = create_llm_connector(model_url)
+    llm = create_llm_connector(model_url, extra_body={"provider": {"only": get_allowed_providers()}})
 
     content = []
 
@@ -142,7 +142,6 @@ def extract_mols_prop_dataset(model_url: str, question: str, pdfs: list) -> pd.D
     combined_dataset = pd.concat(all_datasets, ignore_index=True)
     final_dataset = reorder_columns(combined_dataset)
     final_dataset.to_csv("final_dataset.csv", sep="\t", index=False)
-    
     return final_dataset
 
 

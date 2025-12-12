@@ -5,6 +5,7 @@ from ChemCoScientist.chemical_utils.openchemie_functions import extract_molecule
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage
 from protollm.connectors import create_llm_connector
+from pydantic import BaseModel, Field
 
 from ChemCoScientist.paper_analysis.chroma_db_operations import ChromaDBPaperStore
 from ChemCoScientist.paper_analysis.prompts import sys_prompt, explore_my_papers_prompt
@@ -35,7 +36,17 @@ def query_llm(
     Returns:
         tuple: A tuple containing the LLM's response content (str) and a dictionary of response metadata (dict).
     """
-    llm = create_llm_connector(model_url, extra_body={"provider": {"only": allowed_providers}})
+    llm = create_llm_connector(model_url, extra_body={"provider": {"only": allowed_providers}}, temperature=0.05)
+
+    class ResScheme(BaseModel):
+        answer: str = Field(description="The answer to the query", default="")
+        explanation: str = Field(description="The logical reasoning for the answer", default="")
+        chunk_explanation: str = Field(description="The explanation why the chosen chunk/chunks are relevant to the answer", default="")
+        img_explanation: str = Field(description="The explanation why the chosen image/images are relevant to the answer", default="")
+        relevant_text: list[int] = Field(description="A list of integers representing the relevant text chunk numbers, numeration of chunks starts with 1", default=[])
+        relevant_images: list[int] = Field(description="A list of integers representing the relevant image numbers, numeration of images starts with 1", default=[])
+
+    structured_llm = llm.with_structured_output(schema=ResScheme)
 
     img_context = list(map(convert_to_base64, img_paths))
     messages = [
@@ -48,11 +59,19 @@ def query_llm(
         ),
     ]
 
-    res = llm.invoke(messages)
-    return res.content, res.response_metadata
+    res = structured_llm.invoke(messages)
+    content = {
+        'answer': res.answer,
+        'explanation': res.explanation,
+        'chunk_explanation': res.chunk_explanation,
+        'img_explanation': res.img_explanation,
+        'relevant_text': res.relevant_text,
+        'relevant_images': res.relevant_images
+    }
+    return content
 
 
-def simple_query_llm(model_url: str, question: str, pdfs: list,) -> dict:
+def simple_query_llm(model_url: str, question: str, pdfs: list, img_descriptions: str) -> dict:
     """
     Queries a language model with a question and a list of PDF documents to provide context for answering the question.
 
@@ -85,7 +104,7 @@ def simple_query_llm(model_url: str, question: str, pdfs: list,) -> dict:
         }
         content.append(paper_part)
 
-    text_part = {"type": "text", "text": f"USER QUESTION: {question}"}
+    text_part = {"type": "text", "text": f"USER QUESTION: {question}\n\n{img_descriptions}"}
     content.append(text_part)
     from langchain_core.messages import HumanMessage
 
@@ -113,36 +132,76 @@ def process_question(question: str, store: ChromaDBPaperStore) -> dict:
                 'image_context' - the set of image paths identified as relevant to the question;
                 'metadata' - Additional metadata returned by the LLM query.
     """
-    txt_data, img_data, papers = store.retrieve_context(question)
+    txt_data, img_data = store.retrieve_context(question)
     txt_context = ""
-    img_paths = set()
+    relevant_txt_context = []
+    img_paths = []
 
+    # Combine text context
     for idx, chunk in enumerate(txt_data, start=1):
         txt_context += (
-            f"{idx}. Metadata: "
-            + str(chunk[2])
+            f"{idx}. "
             + "\nChunk: "
             + chunk[1].replace("passage: ", "")
             + "\n\n"
         )
-    for chunk_meta in [chunk[2] for chunk in txt_data]:
-        img_paths.update(eval(chunk_meta["imgs_in_chunk"]))
-    for img in img_data["metadatas"][0]:
-        img_paths.add(img["image_path"])
-        molecules_reactions_metadata = {
-            "molecules": img["molecules"],
-            "reactions": img["reactions"]
-        }
-    txt_context += f"Molecules and reactions data: {molecules_reactions_metadata}\n\n"
+    # Add molecules and reactions data to text context
+    # for img in img_data["metadatas"][0]:
+    #     # img_paths.add(img["image_path"])
+    #     molecules_reactions_metadata = {
+    #         "molecules": img["molecules"],
+    #         "reactions": img["reactions"]
+    #     }
+    # txt_context += f"Molecules and reactions data: {molecules_reactions_metadata}\n\n"
 
-    ans, metadata = query_llm(VISION_LLM_URL, question, txt_context, list(img_paths))
+    # Combine images for context (from chunk text and from DB)
+    for chunk_meta in [chunk[2] for chunk in txt_data]:
+        for img_path in eval(chunk_meta["imgs_in_chunk"]):
+            # img = store.get_image_data(img_path)
+            img_paths.append({
+                'path': img_path,
+                'Source': chunk_meta['source'],
+                'Paper': chunk_meta['title'],
+                'Year': chunk_meta['year'],
+                # 'Molecules': img['molecules'],
+                # 'Reactions': img['reactions']
+            })
+    for img_meta in img_data["metadatas"][0]:
+        if img_meta['image_path'] not in [d['path'] for d in img_paths]:
+            img_paths.append({
+                'path': img_meta['image_path'],
+                'source': img_meta['source'],
+                'Paper': img_meta['title'],
+                'Year': img_meta['year'],
+                # 'Molecules': img_meta['molecules'],
+                # 'Reactions': img_meta['reactions']
+            })
+    img_paths_list = [d['path'] for d in img_paths]
+
+    ans = query_llm(VISION_LLM_URL, question, txt_context, list(img_paths_list))
+
+    # Separate relevant context
+    relevant_txt_data = [txt_data[num - 1] for num in ans['relevant_text']]
+    relevant_img_context = [img_paths[num - 1] for num in ans['relevant_images']]
+
+    for idx, chunk in enumerate(relevant_txt_data, start=1):
+        relevant_txt_context.append({
+            'chunk': f"Chunk {idx}: \n"
+                     + chunk[1].replace("passage: ", "")
+                     + "\n\n",
+            'Source': chunk[2]['source'],
+            'Paper': chunk[2]['title'],
+            'Year': chunk[2]['year'],
+        })
 
     return {
-        "answer": ans,
+        "answer": ans['answer'],
+        "explanation": ans['explanation'],
+        "chunk_explanation": ans.get('chunk_explanation', ''),
+        "img_explanation": ans.get('img_explanation', ''),
         "metadata": {
-            "text_context": txt_context,
-            "image_context": img_paths,
-            "metadata": metadata,
+            "text_context": relevant_txt_context,
+            "image_context": relevant_img_context,
         },
     }
 
@@ -188,12 +247,10 @@ if __name__ == "__main__":
     #######################################################
 
     paper_store = ChromaDBPaperStore()
-    # question = 'What is the title of an article?'
-    # question = 'What components are involved in the synthesis of BASHY dyes, and what are the uses of these dyes?'
-    # question = f'What IC50 values do weakly active and highly active Bruton\'s tyrosine kinase inhibitors have?'
+    question = 'What is the title of an article?'
+    question = 'What components are involved in the synthesis of BASHY dyes, and what are the uses of these dyes?'
+    question = 'What IC50 values do weakly active and highly active Bruton\'s tyrosine kinase inhibitors have?'
     question = 'How does the synthesis of Glionitrin A/B happen?'
-
-    # res = simple_query_llm(VISION_LLM_URL, question, [paper])
     result = process_question(question, paper_store)
     from pprint import pprint
     pprint(result)

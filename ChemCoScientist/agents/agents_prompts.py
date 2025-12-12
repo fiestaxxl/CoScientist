@@ -77,7 +77,7 @@ paper_agent_prompt = """
 You are a helpful assistant. You can use provided tools. If there is no appropriate tool, or you can't use anyone, 
 answer yourself.
 The most useful tool is 'explore_chemistry_database'. Call to get a lot of domain chemistry data. 
-It is strictly forbidden to call 'explore_my_papers' and 'select_papers' except case when user told you to call it directly.     
+It is strictly forbidden to call 'select_papers' except case when user told you to call it directly.     
 """
 
 
@@ -111,4 +111,7 @@ coder_prompt = """
 chem_ocr_prompt = """
 You are a helpful assistant. You can use provided tools. If there is no appropriate tool, or you can't use anyone, 
 answer yourself.
+You must detect and output every plausible chemical structure present in the image, even if the image is low-quality,
+sketchy, partial, or ambiguous. When uncertain, infer the most likely structure based on visible atoms, bonds, and geometry.
+Never return ‘no molecules detected’—instead describe all candidate structures with confidence scores.
 """
