@@ -1,5 +1,5 @@
 from collections import deque
-from typing import List, Dict, Any, AsyncGenerator
+from typing import List, Dict, Any, AsyncGenerator, AsyncGenerator
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents.base import Document
 from langchain.prompts import ChatPromptTemplate
@@ -12,6 +12,8 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.language_models.chat_models import BaseChatModel
 from protollm.agents.builder import GraphBuilder
 from langchain_core.messages import AIMessage
+import asyncio
+
 import asyncio
 
 
@@ -54,6 +56,41 @@ so that downstream agents can execute it without ambiguity.
 ### OUTPUT
 Produce a single, enriched version of the user input, with incorporated factual context.
 """)
+
+RESOLVE_PROMPT = ChatPromptTemplate.from_template("""
+You are an intelligent assistant working within a multi-agent system.
+
+Your task is to **enrich the user's input** using relevant factual information 
+available in the system’s memory. You have access to semantically related context retrieved from long-term memory.
+
+Use this information to make the user’s message **more explicit, grounded, and complete**, 
+so that downstream agents can execute it without ambiguity.
+
+---
+
+### CONTEXT (retrieved facts)
+{context}
+
+### USER INPUT
+{query}
+
+---
+
+### INSTRUCTIONS
+- Do NOT invent facts not supported by the history or context.
+- Integrate only factual or inferable information that is **clearly relevant** to the user input.
+- If the context does not appear directly relevant, **ignore it entirely** and use only the user input.
+- Preserve the original user intent and tone.
+- Rephrase only as much as needed to make the message self-contained and clear.
+- It is very important to follow these instructions otherwise you will lose a lot of money.
+
+---
+
+### OUTPUT
+Produce a single, enriched version of the user input, **only if** the context or history is relevant.
+If the context is unrelated, return the user input unchanged.
+""")
+
 
 RESOLVE_PROMPT = ChatPromptTemplate.from_template("""
 You are an intelligent assistant working within a multi-agent system.

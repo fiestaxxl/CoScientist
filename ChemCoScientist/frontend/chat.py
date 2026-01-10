@@ -69,6 +69,25 @@ def chat():
             else:
                 st.markdown(message["content"])
 
+            if message.get('found_pubmed_papers'):
+                papers = message.get('found_pubmed_papers')
+                st.subheader("Список найденных статей:")
+
+                for idx, paper in enumerate(papers):
+                    with st.expander(
+                        f"{idx+1}. {paper.title}", expanded=False
+                    ):
+
+                        authors = ', '.join(paper.authors)
+                        st.markdown(f"**Авторы:** {authors}")
+                        st.markdown(f"**Год:** {paper.year}")
+                        st.markdown(f"**Журнал:** {paper.journal}")
+                        st.markdown(f"**Аннотация:** {paper.abstract}")
+                        
+                        if paper.link:
+                            st.markdown(f"[Перейти к статье]({paper.link})")
+
+
             gen_imgs = message.get("images_generated")
 
             # if imgs := message.get("image_urls"):  # render previously submitted images
@@ -249,6 +268,8 @@ def message_handler(user_query: str, placeholder: st.delta_generator.DeltaGenera
 
                 # st.session_state.messages.append({'role': 'assistant', "content": result['response']})
                 st.session_state.messages[-1]["content"] = result["response"]
+                if result.get('found_pubmed_papers'):
+                    st.session_state.messages[-1]["found_pubmed_papers"] = result.get('found_pubmed_papers')
 
                 # clean_folder(os.path.join(ROOT_DIR, os.environ["DS_STORAGE_PATH"]))
                 # clean_folder(os.path.join(ROOT_DIR, os.environ["IMG_STORAGE_PATH"]))
@@ -306,6 +327,34 @@ def message_handler(user_query: str, placeholder: st.delta_generator.DeltaGenera
                     st.markdown(msg["automl_results"])
                 else:
                     st.markdown(msg["content"])
+
+                if result.get('metadata'):
+                    
+                    papers = result['metadata']
+                    print(papers)
+
+                    paper_key = 'found_papers_' + user_query
+
+                    if papers.get(paper_key):
+                        st.subheader("Список найденных статей:")
+
+                    st.session_state.messages[-1]['found_pubmed_papers'] = []
+
+                    for idx, paper in enumerate(papers.get(paper_key, [])):
+                        with st.expander(
+                            f"{idx+1}. {paper.title}", expanded=False
+                        ):
+
+                            authors = ', '.join(paper.authors)
+                            st.markdown(f"**Авторы:** {authors}")
+                            st.markdown(f"**Год:** {paper.year}")
+                            st.markdown(f"**Журнал:** {paper.journal}")
+                            st.markdown(f"**Аннотация:** {paper.abstract}")
+
+                            if paper.link:
+                                st.markdown(f"[Перейти к статье]({paper.link})")
+
+                            st.session_state.messages[-1]['found_pubmed_papers'].append(paper)
 
                 # ATTENTION: RENDER IMG FOR USER
                 if imgs := msg.get("image_urls"):
@@ -475,6 +524,24 @@ def display_paper_analysis_metadata(message, message_index):
                 else:
                     st.write("No image context available")
 
+
+def display_dataset(dataset, message_index):
+    import pandas as pd
+    df = pd.DataFrame.from_dict(dataset)
+
+    st.dataframe(df)
+
+    # Create a CSV from the DataFrame for download
+    csv = df.to_csv(sep="\t", index=False).encode('utf-8')
+
+    # Provide a download button to download the CSV file
+    st.download_button(
+        label="Download dataset as CSV",
+        data=csv,
+        file_name='dataset.csv',
+        mime='text/csv',
+        key=f"download_csv_{message_index}",
+    )
 
 def display_dataset(dataset, message_index):
     import pandas as pd
