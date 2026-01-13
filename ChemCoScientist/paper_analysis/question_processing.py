@@ -248,9 +248,11 @@ if __name__ == "__main__":
 
     paper_store = ChromaDBPaperStore()
     question = 'What is the title of an article?'
-    question = 'What components are involved in the synthesis of BASHY dyes, and what are the uses of these dyes?'
-    question = 'What IC50 values do weakly active and highly active Bruton\'s tyrosine kinase inhibitors have?'
-    question = 'How does the synthesis of Glionitrin A/B happen?'
+      # question = 'What components are involved in the synthesis of BASHY dyes, and what are the uses of these dyes?'
+    # question = 'What IC50 values do weakly active and highly active Bruton\'s tyrosine kinase inhibitors have?'
+    # question = 'How does the synthesis of Glionitrin A/B happen?'
+
+    # res = simple_query_llm(VISION_LLM_URL, question, [paper])
     result = process_question(question, paper_store)
     from pprint import pprint
     pprint(result)
