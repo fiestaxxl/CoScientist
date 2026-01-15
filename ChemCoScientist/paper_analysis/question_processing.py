@@ -1,11 +1,15 @@
 import base64
 import os
+import time
+import pikepdf
 
 from ChemCoScientist.chemical_utils.openchemie_functions import extract_molecules_from_figure
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage
 from protollm.connectors import create_llm_connector
 from pydantic import BaseModel, Field
+from pypdf import PdfReader, PdfWriter
+from io import BytesIO
 
 from ChemCoScientist.paper_analysis.chroma_db_operations import ChromaDBPaperStore
 from ChemCoScientist.paper_analysis.prompts import sys_prompt, explore_my_papers_prompt
@@ -91,18 +95,34 @@ def simple_query_llm(model_url: str, question: str, pdfs: list, img_descriptions
     llm = create_llm_connector(model_url)
 
     content = []
+    
+    writer = PdfWriter()
 
+    # Merge all PDFs
     for paper_pdf in pdfs:
-        with open(paper_pdf, "rb") as f:
-            base64_pdf = base64.b64encode(f.read()).decode("utf-8")
-        paper_part = {
-            "type": "file",
-            "file": {
-                "filename": paper_pdf,
-                "file_data": f"data:application/pdf;base64,{base64_pdf}",
-            },
-        }
-        content.append(paper_part)
+        reader = PdfReader(paper_pdf)
+        for page in reader.pages:
+            writer.add_page(page)
+
+    merged_buffer = BytesIO()
+    writer.write(merged_buffer)
+    merged_buffer.seek(0)
+   
+    # Linearize merged PDF
+    clean_buffer = BytesIO()
+    with pikepdf.open(merged_buffer) as pdf:
+        pdf.save(clean_buffer, linearize=True)
+    clean_buffer.seek(0)
+
+    base64_pdf = base64.b64encode(clean_buffer.read()).decode("utf-8")
+    paper_part = {
+        "type": "file",
+        "file": {
+            "filename": "merged_papers.pdf",
+            "file_data": f"data:application/pdf;base64,{base64_pdf}",
+        },
+    }
+    content.append(paper_part)
 
     text_part = {"type": "text", "text": f"USER QUESTION: {question}\n\n{img_descriptions}"}
     content.append(text_part)
@@ -112,9 +132,16 @@ def simple_query_llm(model_url: str, question: str, pdfs: list, img_descriptions
         SystemMessage(content=explore_my_papers_prompt),
         HumanMessage(content=content)
     ]
-
-    res = llm.invoke(messages)
-    return {'answer': res.content}
+    
+    for attempt in range(3):
+        try:
+            res = llm.invoke(messages)
+            return {'answer': res.content}
+        except Exception as e:
+            print(f"LLM query error: {str(e)}. Retrying ({attempt + 1}/3)")
+            time.sleep(1.2 ** attempt)
+            
+    return {'answer': 'LLM invocation failed after 3 attempts.'}
 
 
 def process_question(question: str, store: ChromaDBPaperStore) -> dict:
