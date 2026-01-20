@@ -7,6 +7,7 @@ import threading
 
 from io import BytesIO
 from langgraph.errors import GraphRecursionError
+from pathlib import Path
 from PIL import Image
 from queue import Queue, Empty
 from urllib.parse import urlparse
@@ -401,7 +402,7 @@ def message_handler(user_query: str, placeholder: st.delta_generator.DeltaGenera
                         st.session_state.messages[-1]["chem_ocr"] = result["metadata"]["chem_ocr"]
                         # Display the metadata immediately after storing it
                         message_index = len(st.session_state.messages) - 1
-                        display_chem_ocr_metadata(st.session_state.messages[-1], message_index)
+                        display_chem_ocr_metadata(st.session_state.messages[-1])
 
                 if mols := msg.get("molecules_vis"):
                     for mol in mols:
@@ -443,6 +444,27 @@ def display_chem_ocr_metadata(message):
         print(f'Could not display image: {img_path}, ERROR: {e}')
 
 
+@st.dialog("Extracted compounds", width="large")
+def pdf_viewer(folder: str):
+    folder_path = Path(folder)
+
+    exts = ("*.png", "*.jpg", "*.jpeg", "*.webp")
+    image_paths = []
+    for ext in exts:
+        image_paths.extend(folder_path.glob(ext))
+
+    image_paths = sorted(image_paths)
+
+    # st.write(f"Folder: {folder_path} ({len(image_paths)} pages)")
+    with st.container(height=500, border=True):
+        for i, p in enumerate(image_paths):
+            img = Image.open(p)
+            st.image(img, width=800)
+
+            if i < len(image_paths) - 1:
+                st.divider()
+
+
 def display_paper_analysis_metadata(message, message_index):
     """
     Display analysis details extracted from scientific papers, allowing users to selectively view text, images, and metadata.
@@ -460,7 +482,11 @@ def display_paper_analysis_metadata(message, message_index):
     paper_analysis = message["paper_analysis"]
 
     if "dataset" in paper_analysis.keys():
-        display_dataset(paper_analysis.get("dataset"), message_index)
+        display_dataset(paper_analysis.get("dataset"))
+
+    if "images_path" in paper_analysis.keys():
+        if st.button("Check extracted compounds"):
+            pdf_viewer(paper_analysis.get("images_path"))
 
     if "text_context" in paper_analysis.keys():
         text_context = paper_analysis.get("text_context")
@@ -525,41 +551,10 @@ def display_paper_analysis_metadata(message, message_index):
                     st.write("No image context available")
 
 
-def display_dataset(dataset, message_index):
+def display_dataset(dataset: str):
     import pandas as pd
-    df = pd.DataFrame.from_dict(dataset)
-
+    df = pd.read_csv(dataset, sep="\t")
     st.dataframe(df)
-
-    # Create a CSV from the DataFrame for download
-    csv = df.to_csv(sep="\t", index=False).encode('utf-8')
-
-    # Provide a download button to download the CSV file
-    st.download_button(
-        label="Download dataset as CSV",
-        data=csv,
-        file_name='dataset.csv',
-        mime='text/csv',
-        key=f"download_csv_{message_index}",
-    )
-
-def display_dataset(dataset, message_index):
-    import pandas as pd
-    df = pd.DataFrame.from_dict(dataset)
-
-    st.dataframe(df)
-
-    # Create a CSV from the DataFrame for download
-    csv = df.to_csv(sep="\t", index=False).encode('utf-8')
-
-    # Provide a download button to download the CSV file
-    st.download_button(
-        label="Download dataset as CSV",
-        data=csv,
-        file_name='dataset.csv',
-        mime='text/csv',
-        key=f"download_csv_{message_index}",
-    )
 
 
 def async_to_sync(async_gen):

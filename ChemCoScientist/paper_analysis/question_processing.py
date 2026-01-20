@@ -222,6 +222,8 @@ def process_question(question: str, store: ChromaDBPaperStore) -> dict:
         })
 
     return {
+        "chunk_metadata": txt_data,
+        "img_metadata": img_data,
         "answer": ans['answer'],
         "explanation": ans['explanation'],
         "chunk_explanation": ans.get('chunk_explanation', ''),

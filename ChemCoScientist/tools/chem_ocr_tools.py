@@ -16,20 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 @tool
-def detect_molecules(session_id: str = None) -> Dict:
+def detect_molecules() -> Dict:
     """
     Detects molecular structures in uploaded images and converts
     them into SMILES format using the `molecules_ocr` pipeline.
-
-    The tool retrieves image paths either from:
-    - `SELECTED_PAPERS[session_id]` if a session is active, or
-    - an OCR input directory defined by the `OCR_IMAGES_PATH` environment
-      variable.
-
-    Parameters
-    ----------
-    session_id (str, optional): An identifier for the current user session.
-            Used to access session-specific uploaded papers from `SELECTED_PAPERS`.
 
     Returns
     -------
@@ -55,20 +45,10 @@ def detect_molecules(session_id: str = None) -> Dict:
         return {'answer': 'Could not detect any molecules in the uploaded images.'}
 
 @tool
-def detect_reactions(session_id: str = None) -> Dict:
+def detect_reactions() -> Dict:
     """
     Detects chemical reactions in uploaded images and converts
     them into structured reaction elements format using the `reactions_ocr` pipeline.
-
-    The tool retrieves image paths either from:
-    - `SELECTED_PAPERS[session_id]` if a session is active, or
-    - an OCR input directory defined by the `OCR_IMAGES_PATH` environment
-      variable.
-
-    Parameters
-    ----------
-    session_id (str, optional): An identifier for the current user session.
-            Used to access session-specific uploaded papers from `SELECTED_PAPERS`.
 
     Returns
     -------
