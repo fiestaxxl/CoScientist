@@ -13,3 +13,6 @@ Leave `[ ]` when there is no MCP coverage yet, but tool exist.
 - [ ] `Find relevant papers in DB`
 - [ ] `Create dataset from papers`
 - [ ] `Search and download papers from OpenAlex`
+- [x] `Retrosynthesis route search`
+- [x] `Forward reaction product prediction`
+- [x] `Reaction classification`
