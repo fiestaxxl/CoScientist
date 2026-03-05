@@ -3,7 +3,6 @@ import os
 import time
 import pikepdf
 
-from ChemCoScientist.chemical_utils.openchemie_functions import extract_molecules_from_figure
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage
 from protollm.connectors import create_llm_connector
@@ -16,7 +15,7 @@ from ChemCoScientist.paper_analysis.constants import ResearchArea
 from ChemCoScientist.paper_analysis.prompts import sys_prompt, explore_my_papers_prompt, extract_query_filters_prompt
 from ChemCoScientist.paper_analysis.settings import allowed_providers
 from CoScientist.paper_parser.utils import convert_to_base64, prompt_func, load_image_as_binary
-from ChemCoScientist.chemical_utils.openchemie_functions import *
+from ChemCoScientist.chemical_utils.chemical_functions import *
 from definitions import CONFIG_PATH
 
 load_dotenv(CONFIG_PATH)

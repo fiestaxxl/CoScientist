@@ -27,7 +27,7 @@ dependencies = [
     "open-clip-torch (==2.32.0)",
     "sentence-transformers (==4.1.0)",
     "chromadb (==1.0.15)",
-    "streamlit (==1.45.1)",
+    "streamlit (>=1.54.0,<2.0.0)",
     "langchain-gigachat (==0.3.3)",
     "langchain-ollama (==0.3.0)",
     "langchain-openai (==0.3.3)",

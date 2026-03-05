@@ -42,6 +42,9 @@ import conf.create_conf as cc
 # inputs = {"input": "How does the calculated spin-wave spectrum of Cu₂(OH)₃X vary as the halide (X) is changed from Cl to Br to I, particularly concerning the bandwidth in the interchain direction?"}
 # inputs = {"input": "Расчетное исследование реакций Дильса-Альдера с участием циклопентадиена предлагает классификацию на три типа в зависимости от полярности. Опишите эти три категории, указав их определяющие характеристики с точки зрения переноса заряда (CT) в переходном состоянии и соответствующие активационные барьеры (ΔE‡)."}
 
+# Chemical calculations
+# inputs = {"input": "Calculate docking score for the molecule C1CCCCC1 with the pdb id 5vfi"}
+
 # ChemOCR
 # inputs = {"input": "Extract all molecules from these images."}
 

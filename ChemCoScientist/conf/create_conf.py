@@ -15,12 +15,10 @@ from ChemCoScientist.agents.agents import (
     nanoparticle_node,
     paper_analysis_agent,
     coder_agent,
-    chem_ocr_agent,
     papers_search_agent
 )
-#from CoScientist.scientific_agents.agents import coder_agent
 from ChemCoScientist.tools import chem_tools_rendered, nano_tools_rendered, tools_rendered, data_tools_rendered, \
-    paper_analysis_tools_rendered, chem_ocr_tools_rendered
+    paper_analysis_tools_rendered
 from definitions import ROOT_DIR
 
 
@@ -109,34 +107,6 @@ Failure handling:
 - If sources are paywalled, note it and provide accessible alternatives when possible.
 """
 
-chem_ocr_agent_description = """
-Agent name: chem_ocr_agent
-
-Purpose: Extract molecular structures and reaction information from chemical images or PDF documents.
-When to activate: User provides an image containing drawn molecules,
-reaction schemes, mechanisms, or other chemical entities.
-
-Procedure:
-    1) Plan the agent's steps.
-    2) Extract molecules or reactions using the internal OCR pipeline.
-    4) Return detected molecules and reaction elements as well as annotated images with detected strcutures.
-
-Constraints: Do not call other agents unless the user explicitly requests them.
-Do not attempt extraction if no image is provided.
-
-Inputs:
-- image or PDF: bytes
-- user_query: str (optional clarification about what to extract)
-
-Outputs:
-- Extracted molecular SMILES or reaction elements.
-- Annotated images with detected molecules or reaction elements.
-
-Failure handling:
-If the image cannot be interpreted or no structures are detected, state
-"no extractable chemistry found" and return an empty result set.
-"""
-
 
 papers_search_agent_description = """
 Agent name: papers_search_agent
@@ -196,7 +166,6 @@ additional_agents_description = (
     + coder_agent_description
     + paper_analysis_agent_description
     + web_search_description
-    + chem_ocr_agent_description
     + papers_search_agent_description
 )
 
@@ -222,7 +191,6 @@ conf = {
             "coder_agent",
             "paper_analysis_agent",
             "web_search",
-            "chem_ocr_agent",
             "papers_search_agent"
         ],
         # nodes for scenario agents
@@ -234,7 +202,6 @@ conf = {
             "coder_agent": coder_agent,
             "paper_analysis_agent": paper_analysis_agent,
             "web_search": web_search_node,
-            "chem_ocr_agent": chem_ocr_agent,
             "papers_search_agent": papers_search_agent
         },
         # descripton for agents tools - if using langchain @tool
@@ -247,7 +214,6 @@ conf = {
             "ml_dl_agent": [automl_agent_description],
             "paper_analysis_agent": [paper_analysis_tools_rendered],
             "web_search": [web_search_description],
-            "chem_ocr_agent": [chem_ocr_tools_rendered]
         },
         # full descripton for agents tools
         "tools_descp": tools_rendered + additional_agents_description,
@@ -362,7 +328,7 @@ conf = {
                     - If multiple molecules, files, or entities are processed in the same way, group those actions together as parallel subtasks.
                     - When an earlier step produces data required for another (e.g., training before prediction), make sure the dependent step comes later.
                     - If the user request is ambiguous, infer a reasonable decomposition based on tool capabilities.
-                    - If the user requests molecule or reaction extraction from images call chem_ocr_agent.
+                    - If the user requests molecule or reaction extraction from images call chemical agent.
                     """,
             },
             "chat": {

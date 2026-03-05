@@ -11,7 +11,7 @@ from langchain_core.tools import tool
 from protollm.connectors import create_llm_connector
 from pathlib import Path
 
-from ChemCoScientist.chemical_utils.openchemie_functions import extract_reactions_from_pdf, extract_molecules_from_pdf, remove_keys
+from ChemCoScientist.chemical_utils.chemical_functions import extract_reactions_from_pdf, extract_molecules_from_pdf, remove_keys
 from ChemCoScientist.paper_analysis.chroma_db_operations import ChromaDBPaperStore
 from ChemCoScientist.paper_analysis.prompts import paraphrase_prompt
 from ChemCoScientist.paper_analysis.question_processing import process_question, simple_query_llm

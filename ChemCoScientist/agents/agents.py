@@ -1,4 +1,5 @@
 import ast
+import asyncio
 import os
 import time
 import json
@@ -7,6 +8,7 @@ from typing import Annotated
 import operator
 import streamlit as st
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import ToolMessage
 
 from langgraph.types import Command
 from langgraph.graph import END
@@ -18,9 +20,9 @@ from ChemCoScientist.agents.agents_prompts import (
     automl_prompt,
     ds_builder_prompt,
     worker_prompt,
-    chem_ocr_prompt
+    chemist_prompt,
 )
-from ChemCoScientist.tools import chem_tools, nanoparticle_tools, paper_analysis_tools, data_tools, chem_ocr_tools
+from ChemCoScientist.tools import chem_tools, nanoparticle_tools, paper_analysis_tools, data_tools
 from ChemCoScientist.tools.ml_tools import agents_tools as automl_tools
 from ChemCoScientist.download_papers.functions import download_papers
 
@@ -241,8 +243,10 @@ def chemist_node(state: dict, config: dict) -> Command:
     plan = state["plan"]
     llm = config["configurable"]["llm"]
 
+    current_prompt = f'{chemist_prompt}\nPass {{"session_id": None}} as a parameter to the detect_molecules and detect_reactions tools'
+
     chem_agent = create_react_agent(
-        llm, chem_tools, state_modifier=worker_prompt + "admet = qed"
+        llm, chem_tools, state_modifier=current_prompt
     )
 
     task_formatted = f"""For the following plan:\n{str(plan)}\n\nYou are tasked with executing: {task}."""
@@ -251,6 +255,26 @@ def chemist_node(state: dict, config: dict) -> Command:
         try:
             config["configurable"]["state"] = state
             agent_response = chem_agent.invoke({"messages": [("user", task_formatted)]})
+            
+            updated_metadata = state.get("metadata", {}).copy()
+            for message in agent_response["messages"]:
+                if isinstance(message, ToolMessage) and message.name in ["detect_molecules", "detect_reactions", "extract_reactions"]:
+                    result = json.loads(message.content)
+                    ocr_metadata = {"chem_ocr": result.get("metadata", None)}
+                    if ocr_metadata["chem_ocr"]:
+                        if "chem_ocr" in updated_metadata.keys():
+                            updated_metadata["chem_ocr"].update(ocr_metadata["chem_ocr"])
+                        else:
+                            updated_metadata.update(ocr_metadata)
+                
+                elif isinstance(message, ToolMessage) and message.name in ["calculate_docking"]:
+                    result = json.loads(message.content)
+                    docking_metadata = {"docking": result.get("metadata", None)}
+                    if docking_metadata["docking"]:
+                        if "docking" in updated_metadata.keys():
+                            updated_metadata["docking"].update(docking_metadata["docking"])
+                        else:
+                            updated_metadata.update(docking_metadata)
 
             return Command(update={
                 "past_steps": Annotated[set, operator.or_](set([
@@ -262,6 +286,7 @@ def chemist_node(state: dict, config: dict) -> Command:
                         tuple((m.type, m.content) for m in agent_response["messages"])
                     )
                 ])),
+                "metadata": Annotated[dict, operator.or_](updated_metadata),
             })
 
         except Exception as e:
@@ -366,7 +391,7 @@ def paper_analysis_agent(state: dict, config: dict) -> Command:
         try:
             response = paper_analysis_agent.invoke({"messages": [("user", task)]})
 
-            result = ast.literal_eval(response["messages"][2].content)
+            result = json.loads(response["messages"][2].content)
 
             updated_metadata = state.get("metadata", {}).copy()
             pa_metadata = {"paper_analysis": result.get("metadata")}
@@ -397,73 +422,6 @@ def paper_analysis_agent(state: dict, config: dict) -> Command:
                     "Can I help with something else?"
     })
     
-
-def chem_ocr_agent(state: dict, config: dict) -> Command:
-    """
-    Extracts molecular structures and reaction information from images.
-
-    This agent processes user-provided chemical images—such as reaction schemes, 
-    drawn molecules, or figures from papers—and converts them into machine-readable 
-    formats. It attempts to identify molecular structures, reaction components, 
-    and other depicted chemical entities, returning standardized SMILES.
-
-    Args:
-        state (dict): The current state of the interaction, including images or PDFs provided by user.
-        config (dict): Configuration settings, including the OCR pipeline to use.
-
-    Returns:
-        Command: An object containing the next step in the process ('replan' or `END`) 
-        and updates to the state, including extracted SMILES, user images with detected chemical entities
-        and any error produced during parsing.
-    """
-    print("--------------------------------")
-    print("ChemOCR agent called")
-    print("Current task:")
-    print(state["task"])
-    print("--------------------------------")
-
-    llm: BaseChatModel = config["configurable"]["llm"]
-
-    task = state["task"]
-
-    chem_ocr_agent = create_react_agent(
-        llm, chem_ocr_tools, state_modifier=chem_ocr_prompt
-    )
-
-    for attempt in range(3):
-        try:
-            response = chem_ocr_agent.invoke({"messages": [("user", task)]})
-
-            result = ast.literal_eval(response["messages"][2].content)
-            
-            answer_serialized = json.dumps(result["answer"], sort_keys=True)
-
-            updated_metadata = state.get("metadata", {}).copy()
-            ocr_metadata = {"chem_ocr": result.get("metadata", None)}
-            if ocr_metadata["chem_ocr"]:
-                if "chem_ocr" in updated_metadata.keys():
-                    updated_metadata["chem_ocr"].update(ocr_metadata["chem_ocr"])
-                else:
-                    updated_metadata.update(ocr_metadata)
-
-            return Command(update={
-                "past_steps": Annotated[set, operator.or_](set([
-                    (task, answer_serialized)
-                ])),
-                "nodes_calls": Annotated[set, operator.or_](set([
-                    ("chem_ocr_agent", (("text", answer_serialized),))
-                ])),
-                "metadata": Annotated[dict, operator.or_](updated_metadata),
-            })
-        except Exception as e:
-            print(f"ChemOCR agent error: {str(e)}. Retrying ({attempt + 1}/3)")
-            time.sleep(1.2 ** attempt)
-
-    return Command(goto=END, update={
-        "response": "I cannot extract molecules or reactions right now."
-                    "Can I help with something else?"
-    })
-
 
 def papers_search_agent(state: dict, config: dict) -> Command:
     """
