@@ -11,6 +11,7 @@ from protollm.connectors import create_llm_connector, get_allowed_providers
 from langchain_core.messages import SystemMessage, HumanMessage
 from dotenv import load_dotenv
 from definitions import CONFIG_PATH
+from CoScientist.paper_parser.s3_connection import S3BucketService
 
 from ChemCoScientist.download_papers.prompt import OPENALEX_QUERY_PROMPT
 
@@ -21,6 +22,13 @@ load_dotenv(CONFIG_PATH)
 VISION_LLM_URL = os.environ.get("VISION_LLM_URL")
 DOWNLOADED_PAPERS_PATH = os.environ.get("DOWNLOADED_PAPERS_PATH")
 OPENALEX_API_KEY = os.environ.get("OPENALEX_API_KEY")
+
+s3_service = S3BucketService(
+    endpoint=os.getenv("ENDPOINT_URL"),
+    access_key=os.getenv("ACCESS_KEY"),
+    secret_key=os.getenv("SECRET_KEY"),
+    bucket_name="chemcoscientist-user-data",
+)
 
 
 def sanitize_filename(name: str) -> str:
@@ -84,7 +92,11 @@ def generate_openalex_url(query: str) -> Dict[str, Any]:
     return res.content
 
 
-def download_papers(task: str) -> List[str]:
+def download_papers(
+    task: str,
+    session_id: str = "1",
+    user_id: str = "1"
+) -> List[str]:
     """Search for papers matching a task query and download their PDFs using OpenAlex."""
     url = generate_openalex_url(task)
     logger.info(f"Generated OpenAlex API request URL: {url}")
@@ -102,13 +114,23 @@ def download_papers(task: str) -> List[str]:
             downloaded_path = download_from_openalex(url, title)
             downloaded_paths.append(downloaded_path)
         if downloaded_paths:
-            return {'answer': f'Papers were successfully downloaded: {", ".join(titles)}.',
-                    'metadata': {'papers': downloaded_paths}}
+            logger.info("Uploading downloaded papers to S3...")
+            for local_path in downloaded_paths:
+                s3_service.upload_file_object(
+                    prefix=f"{user_id}/{session_id}/web_search_res/",
+                    source_file_name=os.path.basename(local_path),
+                    file_path=local_path,
+                )
+
+            return {
+                'answer': f'Papers were successfully downloaded: {"\n".join(titles)}.',
+                'metadata': {"papers": downloaded_paths}
+            }
     
     if "authors" in url or "sources" in url or "institutions" in url:
         id = response.json().get("results", [])[0]["id"]
         return {'answer': f'Entity ID: {id}'}
 
 if __name__ == "__main__":
-    result = download_papers("find papers by Yann LeCun")
+    result = download_papers("find 3 papers about CRISPR-CAS")
     print(result)

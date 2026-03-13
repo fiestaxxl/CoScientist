@@ -1,0 +1,25 @@
+services:
+  papers-search-mcp-server:
+    build:
+      context: ..
+      dockerfile: mcp-servers/papers-search-mcp-server/Dockerfile
+    container_name: papers-search-mcp-server
+    env_file:
+      - ./papers-search-mcp-server/.env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "7331:7331"
+    restart: unless-stopped
+  
+  chemical-mcp-server:
+    build: 
+      context: ..
+      dockerfile: mcp-servers/chemical-mcp-server/Dockerfile
+    ports:
+      - "7332:7331"
+    volumes:
+      - ./data:/tmp/chemical_mcp_annotated
+    env_file:
+      - .env
+    restart: unless-stopped
