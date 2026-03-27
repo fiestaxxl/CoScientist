@@ -51,7 +51,7 @@ Uploaded files are stored under the S3 prefix `user_id/session_id/web_search_res
 
 ## Run With uv
 
-From `ChemCoScientist/mcp/papers_search`:
+From `mcp-servers/papers-search-mcp-server`:
 
 ```bash
 set -a
@@ -63,10 +63,10 @@ uv run --no-project python papers_search_server.py
 
 ## Run With Docker
 
-Build from `ChemCoScientist/mcp/papers_search`, but use the repository root as the Docker build context:
+Build from `mcp-servers/papers-search-mcp-server`, but use the repository root as the Docker build context:
 
 ```bash
-docker build -f Dockerfile -t papers-search-mcp-server ../../..
+docker build -f Dockerfile -t papers-search-mcp-server ../..
 ```
 
 Run the container with the environment file and port mapping:

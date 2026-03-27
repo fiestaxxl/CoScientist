@@ -23,3 +23,13 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+
+  dataset-collection-mcp-server:
+    build: 
+      context: ..
+      dockerfile: mcp-servers/dataset-collection-mcp-server/Dockerfile
+    ports:
+      - "7333:7331"
+    env_file:
+      - ./dataset-collection-mcp-server/.env
+    restart: unless-stopped
