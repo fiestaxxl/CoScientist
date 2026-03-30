@@ -1,5 +1,0 @@
-# Utils
-
-
-
-::: ChemCoScientist.tools.utils

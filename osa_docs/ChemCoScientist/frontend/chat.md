@@ -1,5 +1,0 @@
-# Chat
-
-
-
-::: ChemCoScientist.frontend.chat

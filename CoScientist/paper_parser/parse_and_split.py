@@ -5,34 +5,30 @@ import re
 import shutil
 
 from bs4 import BeautifulSoup, Tag
-from dotenv import load_dotenv
 from langchain_text_splitters import HTMLSemanticPreservingSplitter
 from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered, save_output
-from protollm.connectors import create_llm_connector
 
-from definitions import CONFIG_PATH, ROOT_DIR
 from CoScientist.paper_parser.parser_prompts import cls_prompt, table_extraction_prompt
 from CoScientist.paper_parser.utils import prompt_func, convert_to_base64
-from ChemCoScientist.paper_analysis.settings import allowed_providers
 from CoScientist.paper_parser.s3_connection import S3BucketService
+from CoScientist import project_config
 
 _log = logging.getLogger(__name__)
 
-load_dotenv(CONFIG_PATH)
-
-PARSE_RESULTS_PATH = os.path.join(ROOT_DIR, os.environ["PARSE_RESULTS_PATH"])
-PAPERS_PATH = os.path.join(ROOT_DIR, os.environ["PAPERS_STORAGE_PATH"])
-VISION_LLM_URL = os.environ["VISION_LLM_URL"]
+ROOT_DIR = project_config.storage.root_dir
+PARSE_RESULTS_PATH = os.path.join(ROOT_DIR, project_config.storage.parse_results)
+PAPERS_PATH = os.path.join(ROOT_DIR, project_config.storage.papers_storage)
+VISION_LLM_URL = project_config.llm.vision_url
 VISION_LLM_NAME = VISION_LLM_URL.split(';')[1]
-LLM_SERVICE_CC_URL = os.environ["LLM_SERVICE_CC_URL"]
-LLM_SERVICE_KEY = os.getenv("LLM_SERVICE_KEY")
-MARKER_LLM = os.getenv("MARKER_LLM")
-LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL")
+LLM_SERVICE_CC_URL = project_config.llm.service_cc_url
+LLM_SERVICE_KEY = project_config.llm.service_key
+MARKER_LLM = project_config.llm.marker_model
+LLM_SERVICE_URL = project_config.llm.service_url
 IMAGE_RESOLUTION_SCALE = 2.0
-USE_S3 = os.getenv("USE_S3") == "True"
+USE_S3 = project_config.s3.use_s3
 
 
 def parse_with_marker(paper_name: str, use_llm: bool=False) -> (str, Path):
@@ -119,7 +115,7 @@ def clean_up_html(
                 if isinstance(element, Tag):
                     element.decompose()
 
-    llm = create_llm_connector(VISION_LLM_URL, extra_body={"provider": {"only": allowed_providers}})
+    llm = create_llm_connector(VISION_LLM_URL, extra_body={"provider": {"only": config.llm.allowed_providers}})
 
     image_url_mapping = {}
 
