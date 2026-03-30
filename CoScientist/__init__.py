@@ -1,0 +1,1 @@
+from CoScientist.config import config as project_config
